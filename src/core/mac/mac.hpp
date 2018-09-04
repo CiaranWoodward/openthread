@@ -36,7 +36,7 @@
 
 #include "openthread-core-config.h"
 
-#include <openthread/platform/radio.h>
+#include <openthread/platform/radio-phy.h>
 #include <openthread/platform/time.h>
 
 #include "common/locator.hpp"
