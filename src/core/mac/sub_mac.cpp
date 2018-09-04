@@ -33,6 +33,8 @@
 
 #include "sub_mac.hpp"
 
+#if !OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
+
 #include <stdio.h>
 
 #include "common/code_utils.hpp"
@@ -661,3 +663,5 @@ extern "C" void otPlatRadioFrameUpdated(otInstance *aInstance, otRadioFrame *aFr
 
 } // namespace Mac
 } // namespace ot
+
+#endif //! OPENTHREAD_CONFIG_USE_EXTERNAL_MAC

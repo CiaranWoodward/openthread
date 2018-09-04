@@ -33,6 +33,8 @@
 
 #include "sub_mac.hpp"
 
+#if !OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
+
 #include "common/code_utils.hpp"
 #include "common/instance.hpp"
 #include "common/locator-getters.hpp"
@@ -178,3 +180,5 @@ void SubMac::Callbacks::FrameUpdated(Frame &)
 
 } // namespace Mac
 } // namespace ot
+
+#endif //! OPENTHREAD_CONFIG_USE_EXTERNAL_MAC

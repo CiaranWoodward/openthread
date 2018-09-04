@@ -35,9 +35,9 @@
 #ifndef RADIO_QORVO_H_
 #define RADIO_QORVO_H_
 
-#include <stdint.h>
 #include <stdbool.h>
-#include <openthread/platform/radio.h>
+#include <stdint.h>
+#include <openthread/platform/radio-phy.h>
 
 /**
  * This function initializes the radio.
@@ -199,4 +199,4 @@ void cbQorvoRadioTransmitDone(otRadioFrame *aPacket, bool aFramePending, otError
  */
 void cbQorvoRadioReceiveDone(otRadioFrame *aPacket, otError aError);
 
-#endif  // RADIO_QORVO_H_
+#endif // RADIO_QORVO_H_

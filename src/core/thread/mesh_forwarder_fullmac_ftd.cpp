@@ -31,11 +31,13 @@
  *   This file implements FTD-specific mesh forwarding of IPv6/6LoWPAN messages.
  */
 
-#if OPENTHREAD_FTD
+#define WPP_NAME "mesh_forwarder_fullmac_ftd.tmh"
 
 #include "mesh_forwarder.hpp"
 
+#if OPENTHREAD_FTD && !OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
 #include "common/locator-getters.hpp"
+
 #include "common/logging.hpp"
 #include "meshcop/meshcop.hpp"
 #include "net/ip6.hpp"
@@ -1410,4 +1412,4 @@ exit:
 
 } // namespace ot
 
-#endif // OPENTHREAD_FTD
+#endif // OPENTHREAD_FTD && !OPENTHREAD_CONFIG_USE_EXTERNAL_MAC

@@ -40,7 +40,7 @@
 
 #include <openthread/platform/alarm-milli.h>
 #include <openthread/platform/diag.h>
-#include <openthread/platform/radio.h>
+#include <openthread/platform/radio-phy.h>
 
 namespace ot {
 

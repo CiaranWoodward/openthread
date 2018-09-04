@@ -439,6 +439,11 @@ build_samr21() {
     CERT_LOG=1 COVERAGE=1 PYTHONUNBUFFERED=1 NODE_TYPE=ncp-sim make -f examples/Makefile-posix check || die
 }
 
+[ $BUILD_TARGET != posix-externmac ] || {
+    ./bootstrap || die
+    EXTERN_MAC=1 make -f examples/Makefile-posix || die
+}
+
 [ $BUILD_TARGET != toranj-test-framework ] || {
     ./tests/toranj/start.sh || die
 }

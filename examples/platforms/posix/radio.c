@@ -28,14 +28,14 @@
 
 #include "platform-posix.h"
 
-#if OPENTHREAD_POSIX_VIRTUAL_TIME == 0
+#if OPENTHREAD_POSIX_VIRTUAL_TIME == 0 && OPENTHREAD_CONFIG_USE_EXTERNAL_MAC == 0
 
 #include <openthread/dataset.h>
 #include <openthread/random_noncrypto.h>
 #include <openthread/platform/alarm-micro.h>
 #include <openthread/platform/alarm-milli.h>
 #include <openthread/platform/diag.h>
-#include <openthread/platform/radio.h>
+#include <openthread/platform/radio-phy.h>
 #include <openthread/platform/time.h>
 
 #include "utils/code_utils.h"
@@ -983,4 +983,4 @@ int8_t otPlatRadioGetReceiveSensitivity(otInstance *aInstance)
     return POSIX_RECEIVE_SENSITIVITY;
 }
 
-#endif // OPENTHREAD_POSIX_VIRTUAL_TIME == 0
+#endif // OPENTHREAD_POSIX_VIRTUAL_TIME == 0 && OPENTHREAD_POSIX_EXTERNMAC == 0

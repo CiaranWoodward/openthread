@@ -100,10 +100,11 @@ otError DataPollManager::SendDataPoll(void)
     VerifyOrExit(!Get<Mac::Mac>().GetRxOnWhenIdle(), error = OT_ERROR_INVALID_STATE);
 
     parent = Get<Mle::MleRouter>().GetParentCandidate();
-    VerifyOrExit((parent != NULL) && parent->IsStateValidOrRestoring(), error = OT_ERROR_INVALID_STATE);
+    VerifyOrExit(parent->IsStateValidOrRestoring(), error = OT_ERROR_INVALID_STATE);
 
     mTimer.Stop();
 
+#if !OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
     for (message = Get<MeshForwarder>().GetSendQueue().GetHead(); message; message = message->GetNext())
     {
         VerifyOrExit(message->GetType() != Message::kTypeMacDataPoll, error = OT_ERROR_ALREADY);
@@ -118,6 +119,10 @@ otError DataPollManager::SendDataPoll(void)
     {
         message->Free();
     }
+#else
+    (void)message;
+    VerifyOrExit(error = Get<MeshForwarder>().SendPoll());
+#endif
 
 exit:
 
@@ -154,6 +159,10 @@ exit:
         ScheduleNextPoll(kRecalculatePollPeriod);
         break;
     }
+
+#if OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
+    HandlePollSent(error);
+#endif
 
     return error;
 }

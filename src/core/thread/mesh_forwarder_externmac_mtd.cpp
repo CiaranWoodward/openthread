@@ -26,67 +26,72 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <openthread/config.h>
-
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
-
-#include <openthread/config.h>
-#include <openthread/platform/alarm-milli.h>
-#include <openthread/platform/radio-phy.h>
-
-#include "platform-cc1352.h"
-
-#if OPENTHREAD_ENABLE_DIAG
-
 /**
- * Diagnostics mode variables.
- *
+ * @file
+ *   This file implements FTD-specific mesh forwarding of IPv6/6LoWPAN messages.
  */
-static bool sDiagMode = false;
 
-void otPlatDiagProcess(otInstance *aInstance, int argc, char *argv[], char *aOutput, size_t aOutputMaxLen)
+#include "mesh_forwarder_externmac.hpp"
+
+#if OPENTHREAD_MTD && OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
+
+namespace ot {
+
+otError MeshForwarder::SendMessage(Message &aMessage)
 {
-    OT_UNUSED_VARIABLE(aInstance);
+    otError error;
 
-    // Add more platform specific diagnostics features here.
-    if (argc > 1)
+    aMessage.SetDirectTransmission();
+    aMessage.SetOffset(0);
+    aMessage.SetDatagramTag(0);
+
+    SuccessOrExit(error = mSendQueue.Enqueue(aMessage));
+    mScheduleTransmissionTask.Post();
+
+exit:
+    return error;
+}
+
+otError MeshForwarder::EvictMessage(uint8_t aPriority)
+{
+    otError  error = OT_ERROR_NOT_FOUND;
+    Message *message;
+
+    VerifyOrExit((message = mSendQueue.GetTail()) != NULL);
+
+    if (message->GetPriority() < aPriority)
     {
-        snprintf(aOutput, aOutputMaxLen, "diag feature '%s' is not supported\r\n", argv[0]);
+        RemoveMessage(*message);
+        ExitNow(error = OT_ERROR_NONE);
     }
+
+exit:
+    return error;
 }
 
-void otPlatDiagModeSet(bool aMode)
+otError MeshForwarder::RemoveMessageFromSleepyChild(Message &aMessage, Child &aChild)
 {
-    sDiagMode = aMode;
+    OT_UNUSED_VARIABLE(aMessage);
+    OT_UNUSED_VARIABLE(aChild);
+    return OT_ERROR_NOT_FOUND;
 }
 
-bool otPlatDiagModeGet()
+otError MeshSender::ScheduleIndirectTransmission()
 {
-    return sDiagMode;
+    return OT_ERROR_NOT_FOUND;
 }
 
-void otPlatDiagChannelSet(uint8_t aChannel)
+void MeshForwarder::HandleMesh(uint8_t *               aFrame,
+                               uint8_t                 aFrameLength,
+                               const Mac::Address &    aMacSource,
+                               const otThreadLinkInfo &aLinkInfo)
 {
-    OT_UNUSED_VARIABLE(aChannel);
-}
-
-void otPlatDiagTxPowerSet(int8_t aTxPower)
-{
-    OT_UNUSED_VARIABLE(aTxPower);
-}
-
-void otPlatDiagRadioReceived(otInstance *aInstance, otRadioFrame *aFrame, otError aError)
-{
-    OT_UNUSED_VARIABLE(aInstance);
     OT_UNUSED_VARIABLE(aFrame);
-    OT_UNUSED_VARIABLE(aError);
+    OT_UNUSED_VARIABLE(aFrameLength);
+    OT_UNUSED_VARIABLE(aMacSource);
+    OT_UNUSED_VARIABLE(aLinkInfo);
 }
 
-void otPlatDiagAlarmCallback(otInstance *aInstance)
-{
-    OT_UNUSED_VARIABLE(aInstance);
-}
+} // namespace ot
 
-#endif // OPENTHREAD_ENABLE_DIAG
+#endif // OPENTHREAD_MTD && OPENTHREAD_CONFIG_USE_EXTERNAL_MAC

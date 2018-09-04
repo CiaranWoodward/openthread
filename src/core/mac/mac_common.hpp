@@ -28,73 +28,73 @@
 
 /**
  * @file
- *   This file includes definitions for responding to PANID Query Requests.
+ *   This file includes definitions for the IEEE 802.15.4 MAC.
  */
 
-#ifndef PANID_QUERY_SERVER_HPP_
-#define PANID_QUERY_SERVER_HPP_
+#ifndef MAC_COMMON_HPP_
+#define MAC_COMMON_HPP_
 
 #include "openthread-core-config.h"
 
-#include "coap/coap.hpp"
+#include <openthread/platform/radio-phy.h>
+#include <openthread/platform/time.h>
+
 #include "common/locator.hpp"
+#include "common/tasklet.hpp"
 #include "common/timer.hpp"
-#include "mac/mac.hpp"
-#include "net/ip6_address.hpp"
-#include "net/udp6.hpp"
+#include "mac/channel_mask.hpp"
+#include "mac/mac_filter.hpp"
+#include "mac/mac_frame.hpp"
+#include "thread/key_manager.hpp"
+#include "thread/link_quality.hpp"
+#include "thread/network_diagnostic_tlvs.hpp"
+#include "thread/topology.hpp"
 
 namespace ot {
 
 /**
- * This class implements handling PANID Query Requests.
+ * @addtogroup core-mac
+ *
+ * @brief
+ *   This module includes definitions for the IEEE 802.15.4 MAC
+ *
+ * @{
  *
  */
-class PanIdQueryServer : public InstanceLocator
+
+namespace Mac {
+
+/**
+ * Protocol parameters and constants.
+ *
+ */
+enum
 {
-public:
-    /**
-     * This constructor initializes the object.
-     *
-     */
-    explicit PanIdQueryServer(Instance &aInstance);
+    kDataPollTimeout = 100, ///< Timeout for receiving Data Frame (milliseconds).
+    kSleepDelay      = 300, ///< Max sleep delay when frame is pending (milliseconds).
+    kNonceSize       = 13,  ///< Size of IEEE 802.15.4 Nonce (bytes).
 
-private:
-    enum
-    {
-        kScanDelay = 1000, ///< SCAN_DELAY (milliseconds)
-    };
+    kScanDurationDefault = 300, ///< Default interval between channels (milliseconds).
 
-    static void HandleQuery(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo);
-    void        HandleQuery(Coap::Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    kMaxCsmaBackoffsDirect =
+        OPENTHREAD_CONFIG_MAC_MAX_CSMA_BACKOFFS_DIRECT, ///< macMaxCsmaBackoffs for direct transmissions
+    kMaxCsmaBackoffsIndirect =
+        OPENTHREAD_CONFIG_MAC_MAX_CSMA_BACKOFFS_INDIRECT, ///< macMaxCsmaBackoffs for indirect transmissions
 
-#if OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
-    static void HandleScanResult(Instance &aInstance, otBeaconNotify *aBeaconNotify);
-    void        HandleScanResult(otBeaconNotify *aBeaconNotify);
-#else
-    static void HandleScanResult(Instance &aInstance, Mac::Frame *aFrame);
-    void        HandleScanResult(Mac::Frame *aFrame);
-#endif
+    kMaxFrameRetriesDirect =
+        OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_DIRECT, ///< macMaxFrameRetries for direct transmissions
+    kMaxFrameRetriesIndirect =
+        OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_INDIRECT, ///< macMaxFrameRetries for indirect transmissions
 
-    static void HandleTimer(Timer &aTimer);
-    void        HandleTimer(void);
-
-    static void HandleUdpReceive(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo);
-
-    otError SendConflict(void);
-
-    Ip6::Address mCommissioner;
-    uint32_t     mChannelMask;
-    uint16_t     mPanId;
-
-    TimerMilli mTimer;
-
-    Coap::Resource mPanIdQuery;
+    kTxNumBcast = OPENTHREAD_CONFIG_TX_NUM_BCAST ///< Number of times each broadcast frame is transmitted
 };
 
 /**
  * @}
+ *
  */
 
+} // namespace Mac
 } // namespace ot
 
-#endif // PANID_QUERY_SERVER_HPP_
+#endif // MAC_COMMON_HPP_

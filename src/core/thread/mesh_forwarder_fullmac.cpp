@@ -31,7 +31,9 @@
  *   This file implements mesh forwarding of IPv6/6LoWPAN messages.
  */
 
-#include "mesh_forwarder.hpp"
+#include "mesh_forwarder_fullmac.hpp"
+
+#if !OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
 
 #include "common/code_utils.hpp"
 #include "common/debug.hpp"
@@ -1899,3 +1901,5 @@ void MeshForwarder::LogLowpanHcFrameDrop(otError, uint8_t, const Mac::Address &,
 #endif // #if (OPENTHREAD_CONFIG_LOG_LEVEL >= OT_LOG_LEVEL_INFO) && (OPENTHREAD_CONFIG_LOG_MAC == 1)
 
 } // namespace ot
+
+#endif

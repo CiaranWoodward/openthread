@@ -40,7 +40,7 @@
 #include <utils/code_utils.h>
 
 #include "platform-emsk.h"
-#include "openthread/platform/radio.h"
+#include "openthread/platform/radio-phy.h"
 
 #include <stdlib.h>
 

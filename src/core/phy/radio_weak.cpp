@@ -30,7 +30,7 @@
  *   This file implements the default radio platform APIs.
  */
 
-#include <openthread/platform/radio.h>
+#include <openthread/platform/radio-phy.h>
 
 #include "phy/phy.hpp"
 

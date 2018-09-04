@@ -430,10 +430,12 @@ template <> inline Mac::Mac &Instance::Get(void)
     return mThreadNetif.mMac;
 }
 
+#if !OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
 template <> inline Mac::SubMac &Instance::Get(void)
 {
     return mThreadNetif.mMac.mSubMac;
 }
+#endif
 
 #if OPENTHREAD_ENABLE_MAC_FILTER
 template <> inline Mac::Filter &Instance::Get(void)
