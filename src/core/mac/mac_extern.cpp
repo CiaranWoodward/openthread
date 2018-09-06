@@ -704,29 +704,28 @@ otError Mac::BuildRouterDeviceDescriptors(uint8_t &aDevIndex, uint8_t &aNumActiv
     Router *routerList;
     otError error = OT_ERROR_NONE;
 
-    // Set all child device info
-    childList = GetNetif().GetMle().GetChildren(&numChildren);
-    for (int i = 0; i < numChildren; i++)
+    for (ChildTable::Iterator iter(GetInstance(), ChildTable::kInStateValidOrRestoring); !iter.IsDone(); iter++)
     {
-        if (childList[i].IsStateValidOrRestoring())
-        {
-            BuildDeviceDescriptor(childList[i], aDevIndex);
-            aNumActiveDevices++;
-        }
+        BuildDeviceDescriptor(*iter.GetChild(), aDevIndex);
+        aNumActiveDevices++;
     }
 
-    // Set all neighbour router device info with remaining slots (must be at least 1)
-    routerList = GetNetif().GetMle().GetRouters(&numRouters);
-    for (int i = 0; i < numRouters; i++)
+    for (RouterTable::Iterator iter(GetInstance()); !iter.IsDone(); iter++)
     {
-        if (i == aIgnoreRouterId)
-            continue;
-        if (routerList[i].IsStateValidOrRestoring() && !Mle::MleRouter::IsRouterIdValid(routerList[i].GetNextHop()))
-        {
-            error = BuildDeviceDescriptor(routerList[i], aDevIndex);
-            VerifyOrExit(error == OT_ERROR_NONE);
-            aNumActiveDevices++;
-        }
+        Router *router = iter.GetRouter();
+
+        if (router->GetRouterId() == aIgnoreRouterId)
+            continue; // Ignore self
+
+        if (!router->IsStateValidOrRestoring())
+            continue; // Ignore invalid routers
+
+        if (Mle::MleRouter::IsRouterIdValid(router->GetNextHop()))
+            continue; // Ignore non-neighbors
+
+        error = BuildDeviceDescriptor(*router, aDevIndex);
+        VerifyOrExit(error == OT_ERROR_NONE);
+        aNumActiveDevices++;
     }
 
 exit:
@@ -822,6 +821,7 @@ void Mac::BuildJoinerKeyDescriptor(uint8_t aIndex)
 {
 #if OPENTHREAD_ENABLE_JOINER
     otKeyTableEntry keyTableEntry = {};
+    ExtAddress      counterpart;
 
     memcpy(keyTableEntry.mKey, GetNetif().GetKeyManager().GetKek(), sizeof(keyTableEntry.mKey));
     keyTableEntry.mKeyIdLookupListEntries = 1;
@@ -829,8 +829,8 @@ void Mac::BuildJoinerKeyDescriptor(uint8_t aIndex)
     keyTableEntry.mKeyDeviceListEntries   = 1;
 
     keyTableEntry.mKeyIdLookupDesc[0].mLookupDataSizeCode = OT_MAC_LOOKUP_DATA_SIZE_CODE_9_OCTETS;
-    CopyReversedExtAddr(GetNetif().GetJoiner().GetCounterpartAddress(),
-                        &(keyTableEntry.mKeyIdLookupDesc[0].mLookupData[1]));
+    GetNetif().GetJoiner().GetCounterpartAddress(counterpart);
+    CopyReversedExtAddr(counterpart, &(keyTableEntry.mKeyIdLookupDesc[0].mLookupData[1]));
 
     keyTableEntry.mKeyDeviceDesc[0].mDeviceDescriptorHandle = 0;
 
@@ -1000,7 +1000,8 @@ void Mac::BuildSecurityTable()
 #if OPENTHREAD_ENABLE_JOINER
     if (role == OT_DEVICE_ROLE_DISABLED && isJoining)
     {
-        const ExtAddress &counterpart = GetNetif().GetJoiner().GetCounterpartAddress();
+        ExtAddress counterpart;
+        GetNetif().GetJoiner().GetCounterpartAddress(counterpart);
         Mac::BuildDeviceDescriptor(counterpart, 0, mPanId, 0xFFFF, devIndex++);
     }
 #endif

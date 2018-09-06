@@ -115,8 +115,7 @@ enum otMacStatus
  * This enum represents the indexes for each PIB attribute as defined in IEEE 802.15.4-2006
  *
  */
-typedef enum otPibAttr
-{
+typedef enum otPibAttr {
     OT_PIB_PHY_CURRENT_CHANNEL    = 0x00,
     OT_PIB_PHY_CHANNELS_SUPPORT   = 0x01,
     OT_PIB_PHY_TRANSMIT_POWER     = 0x02,

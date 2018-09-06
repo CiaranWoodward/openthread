@@ -95,14 +95,14 @@ typedef uint8_t otRadioCaps;
  * This enumeration defines constants that are used to indicate different radio capabilities. See `otRadioCaps`.
  *
  */
-
-typedef enum otRadioCaps {
-    OT_RADIO_CAPS_NONE             = 0, ///< None
-    OT_RADIO_CAPS_ACK_TIMEOUT      = 1, ///< Radio supports AckTime event
-    OT_RADIO_CAPS_ENERGY_SCAN      = 2, ///< Radio supports Energy Scans
-    OT_RADIO_CAPS_TRANSMIT_RETRIES = 4, ///< Radio supports transmission retry logic with collision avoidance (CSMA).
-    OT_RADIO_CAPS_CSMA_BACKOFF     = 8, ///< Radio supports CSMA backoff for frame transmission (but no retry).
-} otRadioCaps;
+enum
+{
+    OT_RADIO_CAPS_NONE             = 0,      ///< Radio supports no capability.
+    OT_RADIO_CAPS_ACK_TIMEOUT      = 1 << 0, ///< Radio supports AckTime event.
+    OT_RADIO_CAPS_ENERGY_SCAN      = 1 << 1, ///< Radio supports Energy Scans.
+    OT_RADIO_CAPS_TRANSMIT_RETRIES = 1 << 2, ///< Radio supports tx retry logic with collision avoidance (CSMA).
+    OT_RADIO_CAPS_CSMA_BACKOFF     = 1 << 3, ///< Radio supports CSMA backoff for frame transmission (but no retry).
+};
 
 #define OT_PANID_BROADCAST 0xffff ///< IEEE 802.15.4 Broadcast PAN ID
 
