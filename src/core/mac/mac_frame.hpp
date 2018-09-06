@@ -295,6 +295,19 @@ public:
     ExtAddress &GetExtended(void) { return mShared.mExtAddress; }
 
     /**
+     * This method gets the address with an Extended Address as byte array.
+     *
+     * This method MUST be used only if the address type is Extended Address.
+     *
+     * @param[out]  aBuffer  Pointer to a array to be filled with the Extended Address. `OT_EXT_ADDRESS_SIZE` bytes
+     *                       from Extended Address are copied into the buffer
+     * @param[in]  aReverse  If `true` then `OT_EXT_ADDRESS_SIZE` bytes from the Extended address are copied in
+     *                       reverse order, otherwise they are copied as stored internally.
+     *
+     */
+    void GetExtended(uint8_t *aBuffer, bool aReverse) const;
+
+    /**
      * This method sets the address to none (i.e., clears the address).
      *
      * Address type will be updated to `kTypeNone`.

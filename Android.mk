@@ -105,7 +105,7 @@ LOCAL_SRC_FILES                                          := \
     src/core/crypto/mbedtls.cpp                             \
     src/core/crypto/pbkdf2_cmac.cpp                         \
     src/core/crypto/sha256.cpp                              \
-    src/core/mac/mac.cpp                                    \
+    src/core/mac/mac_full.cpp                               \
     src/core/mac/mac_filter.cpp                             \
     src/core/mac/mac_frame.cpp                              \
     src/core/meshcop/announce_begin_client.cpp              \

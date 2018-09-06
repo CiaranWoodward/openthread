@@ -149,7 +149,7 @@ SOURCES_COMMON                      = \
     crypto/mbedtls.cpp                \
     crypto/pbkdf2_cmac.cpp            \
     crypto/sha256.cpp                 \
-    mac/mac.cpp                       \
+    mac/mac_full.cpp                  \
     mac/mac_filter.cpp                \
     mac/mac_frame.cpp                 \
     meshcop/announce_begin_client.cpp \
@@ -278,8 +278,10 @@ HEADERS_COMMON                      = \
     crypto/pbkdf2_cmac.h              \
     crypto/sha256.hpp                 \
     mac/mac.hpp                       \
+    mac/mac_common.hpp                \
     mac/mac_filter.hpp                \
     mac/mac_frame.hpp                 \
+    mac/mac_full.hpp                  \
     meshcop/announce_begin_client.hpp \
     meshcop/border_agent.hpp          \
     meshcop/commissioner.hpp          \

@@ -165,7 +165,7 @@
     <ClCompile Include="..\..\src\core\crypto\aes_ccm.cpp">
       <Filter>Source Files\crypto</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\mac\mac.cpp">
+    <ClCompile Include="..\..\src\core\mac\mac_full.cpp">
       <Filter>Source Files\mac</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\mac\mac_filter.cpp">

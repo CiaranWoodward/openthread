@@ -94,7 +94,7 @@
     <ClCompile Include="..\..\src\core\crypto\mbedtls.cpp" />
     <ClCompile Include="..\..\src\core\crypto\pbkdf2_cmac.cpp" />
     <ClCompile Include="..\..\src\core\crypto\sha256.cpp" />
-    <ClCompile Include="..\..\src\core\mac\mac.cpp" />
+    <ClCompile Include="..\..\src\core\mac\mac_full.cpp" />
     <ClCompile Include="..\..\src\core\mac\mac_filter.cpp" />
     <ClCompile Include="..\..\src\core\mac\mac_frame.cpp" />
     <ClCompile Include="..\..\src\core\meshcop\announce_begin_client.cpp" />
@@ -183,6 +183,7 @@
     <ClInclude Include="..\..\src\core\crypto\pbkdf2_cmac.h" />
     <ClInclude Include="..\..\src\core\crypto\sha256.hpp" />
     <ClInclude Include="..\..\src\core\mac\mac.hpp" />
+    <ClInclude Include="..\..\src\core\mac\mac_full.hpp" />
     <ClInclude Include="..\..\src\core\mac\mac_filter.hpp" />
     <ClInclude Include="..\..\src\core\mac\mac_frame.hpp" />
     <ClInclude Include="..\..\src\core\meshcop\announce_begin_client.hpp" />
