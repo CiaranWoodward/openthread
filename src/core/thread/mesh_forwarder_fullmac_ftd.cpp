@@ -31,7 +31,7 @@
  *   This file implements FTD-specific mesh forwarding of IPv6/6LoWPAN messages.
  */
 
-#if OPENTHREAD_FTD
+#if OPENTHREAD_FTD && !OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
 
 #define WPP_NAME "mesh_forwarder_ftd.tmh"
 
@@ -1216,4 +1216,4 @@ exit:
 
 } // namespace ot
 
-#endif // OPENTHREAD_FTD
+#endif // OPENTHREAD_FTD && !OPENTHREAD_CONFIG_USE_EXTERNAL_MAC

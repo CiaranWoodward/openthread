@@ -31,7 +31,7 @@
  *   This file implements MTD-specific mesh forwarding of IPv6/6LoWPAN messages.
  */
 
-#if OPENTHREAD_MTD
+#if OPENTHREAD_MTD && !OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
 
 #define WPP_NAME "mesh_forwarder_mtd.tmh"
 
@@ -91,4 +91,4 @@ void MeshForwarder::HandleMesh(uint8_t *               aFrame,
 
 } // namespace ot
 
-#endif // OPENTHREAD_MTD
+#endif // OPENTHREAD_MTD && !OPENTHREAD_CONFIG_USE_EXTERNAL_MAC

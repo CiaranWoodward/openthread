@@ -31,6 +31,7 @@
  *   This file includes definitions for the IEEE 802.15.4 MAC.
  */
 
+#if !OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
 #ifndef MAC_FULL_HPP_
 #define MAC_FULL_HPP_
 
@@ -867,3 +868,4 @@ private:
 } // namespace ot
 
 #endif // MAC_FULL_HPP_
+#endif // !OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
