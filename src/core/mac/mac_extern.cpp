@@ -267,14 +267,24 @@ exit:
 void Mac::HandleBeaconNotification(otBeaconNotify *aBeaconNotify)
 {
     otActiveScanResult aResult;
-    BeaconPayload *    beaconPayload = NULL;
 
     VerifyOrExit(mActiveScanHandler != NULL);
+    VerifyOrExit(aBeaconNotify != NULL);
+
+    mActiveScanHandler(aBeaconNotify, mScanContext);
+exit:
+    return;
+}
+
+otError ConvertBeaconToActiveScanResult(otBeaconNotify *aBeaconNotify, otActiveScanResult &aResult)
+{
+    otError        error         = OT_ERROR_NONE;
+    BeaconPayload *beaconPayload = NULL;
 
     memset(&aResult, 0, sizeof(aResult));
 
-    VerifyOrExit(aBeaconNotify != NULL);
-    VerifyOrExit(aBeaconNotify->mPanDescriptor.Coord.mAddressMode == OT_MAC_ADDRESS_MODE_EXT);
+    VerifyOrExit(aBeaconNotify != NULL, error = OT_ERROR_INVALID_ARGS);
+    VerifyOrExit(aBeaconNotify->mPanDescriptor.Coord.mAddressMode == OT_MAC_ADDRESS_MODE_EXT, error = OT_ERROR_PARSE);
 
     memcpy(&aResult.mExtAddress, aBeaconNotify->mPanDescriptor.Coord.mAddress, sizeof(aResult.mExtAddress));
     aResult.mPanId   = Encoding::LittleEndian::ReadUint16(aBeaconNotify->mPanDescriptor.Coord.mPanId);
@@ -292,10 +302,13 @@ void Mac::HandleBeaconNotification(otBeaconNotify *aBeaconNotify)
         memcpy(&aResult.mNetworkName, beaconPayload->GetNetworkName(), sizeof(aResult.mNetworkName));
         memcpy(&aResult.mExtendedPanId, beaconPayload->GetExtendedPanId(), sizeof(aResult.mExtendedPanId));
     }
+    else
+    {
+        error = OT_ERROR_PARSE;
+    }
 
-    mActiveScanHandler(&aResult, mScanContext);
 exit:
-    return;
+    return error;
 }
 
 otError Mac::RegisterReceiver(Receiver &aReceiver)

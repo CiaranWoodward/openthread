@@ -233,7 +233,7 @@ public:
      * @param[in]  aBeaconFrame   A pointer to the Beacon frame.
      *
      */
-    typedef void (*ActiveScanHandler)(void *aContext, otActiveScanResult *aResult);
+    typedef void (*ActiveScanHandler)(void *aContext, otBeaconNotify *aResult);
 
     /**
      * This method starts an IEEE 802.15.4 Active Scan.
@@ -245,6 +245,19 @@ public:
      *
      */
     otError ActiveScan(uint32_t aScanChannels, uint16_t aScanDuration, ActiveScanHandler aHandler, void *aContext);
+
+    /**
+     * This method converts a beacon notify indication to an active scan result of type `otActiveScanResult`.
+     *
+     * @param[in]  aBeaconFrame             A pointer to a beacon notify.
+     * @param[out] aResult                  A reference to `otActiveScanResult` where the result is stored.
+     *
+     * @retval OT_ERROR_NONE            Successfully converted the beacon into active scan result.
+     * @retval OT_ERROR_INVALID_ARGS    The @a aBeaconFrame was NULL.
+     * @retval OT_ERROR_PARSE           Failed parsing the beacon frame.
+     *
+     */
+    otError ConvertBeaconToActiveScanResult(otBeaconNotify *aBeaconFrame, otActiveScanResult &aResult);
 
     /**
      * This function pointer is called during an "Energy Scan" when the result for a channel is ready or the scan
