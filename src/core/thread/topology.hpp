@@ -372,11 +372,6 @@ public:
      *
      */
     void SetDeviceTableIndex(uint8_t aDeviceTableIndex) { mDeviceTableIndex = aDeviceTableIndex; }
-#else
-    // stub
-    uint8_t GetDeviceTableIndex(void) { return 0; }
-    // stub
-    void    SetDeviceTableIndex(uint8_t aDeviceTableIndex) { (void)aDeviceTableIndex; }
 #endif
 
 private:

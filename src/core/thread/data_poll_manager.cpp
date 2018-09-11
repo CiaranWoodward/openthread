@@ -107,6 +107,7 @@ otError DataPollManager::SendDataPoll(void)
 
     mTimer.Stop();
 
+#if !OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
     for (message = netif.GetMeshForwarder().GetSendQueue().GetHead(); message; message = message->GetNext())
     {
         VerifyOrExit(message->GetType() != Message::kTypeMacDataPoll, error = OT_ERROR_ALREADY);
@@ -121,6 +122,10 @@ otError DataPollManager::SendDataPoll(void)
     {
         message->Free();
     }
+#else
+    (void)message;
+    VerifyOrExit(error = netif.GetMeshForwarder().SendPoll());
+#endif
 
 exit:
 
@@ -157,6 +162,10 @@ exit:
         ScheduleNextPoll(kRecalculatePollPeriod);
         break;
     }
+
+#if OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
+    HandlePollSent(error);
+#endif
 
     return error;
 }

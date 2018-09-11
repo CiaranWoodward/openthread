@@ -240,7 +240,7 @@ otError Mle::Start(bool aEnableReattach, bool aAnnounceAttach)
     otError      error = OT_ERROR_NONE;
 
     // cannot bring up the interface if IEEE 802.15.4 promiscuous mode is enabled
-    VerifyOrExit(otPlatRadioGetPromiscuous(&netif.GetInstance()) == false, error = OT_ERROR_INVALID_STATE);
+    VerifyOrExit(netif.GetMac().IsPromiscuous() == false, error = OT_ERROR_INVALID_STATE);
     VerifyOrExit(netif.IsUp(), error = OT_ERROR_INVALID_STATE);
 
     SetStateDetached();
@@ -1974,6 +1974,9 @@ otError Mle::SendChildIdRequest(void)
     SuccessOrExit(error = AppendPendingTimestamp(*message));
 
     mParentCandidate.SetState(Neighbor::kStateValid);
+#if OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
+    GetNetif().GetMac().BuildSecurityTable();
+#endif
 
     memset(&destination, 0, sizeof(destination));
     destination.mFields.m16[0] = HostSwap16(0xfe80);
@@ -2638,6 +2641,9 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
 
             neighbor->SetKeySequence(keySequence);
             neighbor->SetLinkFrameCounter(0);
+#if OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
+            netif.GetMac().UpdateDevice(*neighbor);
+#endif
         }
 
         neighbor->SetMleFrameCounter(frameCounter + 1);
@@ -3225,6 +3231,9 @@ otError Mle::HandleParentResponse(const Message &aMessage, const Ip6::MessageInf
     mParentCandidate.SetLinkQualityOut(LinkQualityInfo::ConvertLinkMarginToLinkQuality(linkMarginTlv.GetLinkMargin()));
     mParentCandidate.SetState(Neighbor::kStateParentResponse);
     mParentCandidate.SetKeySequence(aKeySequence);
+#if OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
+    netif.GetMac().UpdateDevice(mParentCandidate);
+#endif
 
     mParentPriority     = connectivity.GetParentPriority();
     mParentLinkQuality3 = connectivity.GetLinkQuality3();
@@ -3488,6 +3497,9 @@ otError Mle::HandleChildUpdateResponse(const Message &aMessage, const Ip6::Messa
 
         mParent.SetLinkFrameCounter(linkFrameCounter.GetFrameCounter());
         mParent.SetMleFrameCounter(mleFrameCounter.GetFrameCounter());
+#if OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
+        netif.GetMac().UpdateDevice(mParent);
+#endif
 
         mParent.SetState(Neighbor::kStateValid);
         SetStateChild(GetRloc16());

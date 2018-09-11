@@ -409,6 +409,15 @@ bool otLinkIsInTransmitState(otInstance *aInstance)
     return instance.GetThreadNetif().GetMac().IsInTransmitState();
 }
 
+#if OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
+void otLinkSyncExternalMac(otInstance *aInstance)
+{
+    Instance &instance = *static_cast<Instance *>(aInstance);
+
+    instance.GetThreadNetif().GetMac().Start();
+}
+#endif
+
 otError otLinkOutOfBandTransmitRequest(otInstance *aInstance, otRadioFrame *aOobFrame)
 {
     Instance &instance = *static_cast<Instance *>(aInstance);
