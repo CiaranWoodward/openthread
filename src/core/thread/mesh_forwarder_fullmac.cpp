@@ -31,11 +31,11 @@
  *   This file implements mesh forwarding of IPv6/6LoWPAN messages.
  */
 
-#if !OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
-
 #define WPP_NAME "mesh_forwarder.tmh"
 
 #include "mesh_forwarder_fullmac.hpp"
+
+#if !OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
 
 #include "common/code_utils.hpp"
 #include "common/debug.hpp"

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, The OpenThread Authors.
+ *  Copyright (c) 2018, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -28,18 +28,55 @@
 
 /**
  * @file
- *   This file includes definitions for forwarding IPv6 datagrams across the Thread mesh.
+ *   This file implements FTD-specific mesh forwarding of IPv6/6LoWPAN messages.
  */
 
-#ifndef MESH_FORWARDER_HPP_
-#define MESH_FORWARDER_HPP_
+#define WPP_NAME "mesh_forwarder_ftd.tmh"
 
-#include "openthread-core-config.h"
-
-#if OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
 #include "mesh_forwarder_externmac.hpp"
-#else
-#include "mesh_forwarder_fullmac.hpp"
-#endif
 
-#endif // MESH_FORWARDER_HPP_
+#if OPENTHREAD_MTD && OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
+
+namespace ot {
+
+otError MeshForwarder::SendMessage(Message &aMessage)
+{
+    otError error;
+
+    aMessage.SetDirectTransmission();
+    aMessage.SetOffset(0);
+    aMessage.SetDatagramTag(0);
+
+    SuccessOrExit(error = mSendQueue.Enqueue(aMessage));
+    mScheduleTransmissionTask.Post();
+
+exit:
+    return error;
+}
+
+otError MeshForwarder::EvictIndirectMessage(void)
+{
+    return OT_ERROR_NOT_FOUND;
+}
+
+otError MeshForwarder::RemoveMessageFromSleepyChild(Message &aMessage, Child &aChild)
+{
+    OT_UNUSED_VARIABLE(aMessage);
+    OT_UNUSED_VARIABLE(aChild);
+    return OT_ERROR_NOT_FOUND;
+}
+
+void MeshForwarder::HandleMesh(uint8_t *               aFrame,
+                               uint8_t                 aFrameLength,
+                               const Mac::Address &    aMacSource,
+                               const otThreadLinkInfo &aLinkInfo)
+{
+    OT_UNUSED_VARIABLE(aFrame);
+    OT_UNUSED_VARIABLE(aFrameLength);
+    OT_UNUSED_VARIABLE(aMacSource);
+    OT_UNUSED_VARIABLE(aLinkInfo);
+}
+
+} // namespace ot
+
+#endif // OPENTHREAD_MTD && OPENTHREAD_CONFIG_USE_EXTERNAL_MAC

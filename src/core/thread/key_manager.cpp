@@ -231,7 +231,7 @@ const uint8_t *KeyManager::GetTemporaryMleKey(uint32_t aKeySequence)
     return mTemporaryKey;
 }
 
-uint32_t KeyManager::GetMacFrameCounter(void) const
+uint32_t KeyManager::GetMacFrameCounter(void)
 {
 #if OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
     mMacFrameCounter = GetNetif().GetMac().GetFrameCounter();

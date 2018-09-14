@@ -31,12 +31,12 @@
  *   This file includes definitions for forwarding IPv6 datagrams across the Thread mesh.
  */
 
-#if !OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
-
 #ifndef MESH_FORWARDER_FULLMAC_HPP_
 #define MESH_FORWARDER_FULLMAC_HPP_
 
 #include "openthread-core-config.h"
+
+#if !OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
 
 #include "common/locator.hpp"
 #include "common/tasklet.hpp"

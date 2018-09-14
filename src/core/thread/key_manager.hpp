@@ -176,7 +176,7 @@ public:
      * @returns The current MAC Frame Counter value.
      *
      */
-    uint32_t GetMacFrameCounter(void) const;
+    uint32_t GetMacFrameCounter(void);
 
     /**
      * This method returns the current cached MAC Frame Counter value. Used for external-Mac systems where

@@ -434,9 +434,9 @@ typedef struct otKeyTableEntry
     uint8_t                  mKeyUsageListEntries;    ///< Number of entries in the Key Usage List
     uint8_t                  mKey[16];                ///< Key Data
     struct otKeyIdLookupDesc mKeyIdLookupDesc[1];     ///< List of the lookup descriptors for this key
-    otKeyDeviceDesc
-                   mKeyDeviceDesc[OPENTHREAD_CONFIG_HARDMAC_DEVICE_TABLE_SIZE]; ///< Key Device Descriptors enabled for this key
-    otKeyUsageDesc mKeyUsageDesc[2];                                            ///< Key Usage Descriptors for this key
+    otKeyDeviceDesc mKeyDeviceDesc[OPENTHREAD_CONFIG_EXTERNAL_MAC_DEVICE_TABLE_SIZE]; ///< Key Device Descriptors
+                                                                                      ///< enabled for this key
+    otKeyUsageDesc mKeyUsageDesc[2]; ///< Key Usage Descriptors for this key
 } otKeyTableEntry;
 
 /**

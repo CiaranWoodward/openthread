@@ -1850,4 +1850,50 @@
 #ifndef OPENTHREAD_CONFIG_IPV6_DEFAULT_MAX_DATAGRAM
 #define OPENTHREAD_CONFIG_IPV6_DEFAULT_MAX_DATAGRAM 1280
 #endif
+
+/*
+ * @def OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
+ *
+ * This setting configures openthread to be build to use an external MAC layer
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
+#define OPENTHREAD_CONFIG_USE_EXTERNAL_MAC 0
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_EXTERNAL_MAC_SHARED_DD
+ *
+ * This setting configures whether or not the higher layer can take advantage of
+ * a 'shared device descriptor' mac enhancement to save memory.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_EXTERNAL_MAC_SHARED_DD
+#define OPENTHREAD_CONFIG_EXTERNAL_MAC_SHARED_DD 0
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_EXTERNAL_MAC_DEVICE_TABLE_SIZE
+ *
+ * This setting configures the size of the external MAC's device table. With the
+ * OPENTHREAD_CONFIG_EXTERNAL_MAC_SHARED_DD setting enabled, each device costs 1
+ * descriptor. Without it, each device costs 3 descriptors. There is an additional
+ * 1 device descriptor required for the 'Mode 2' generic device. Joiner routers
+ * require an additional 1 device descriptor to be used for registering joiners.
+ */
+#ifndef OPENTHREAD_CONFIG_EXTERNAL_MAC_DEVICE_TABLE_SIZE
+#define OPENTHREAD_CONFIG_EXTERNAL_MAC_DEVICE_TABLE_SIZE 32
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_INDIRECT_QUEUE_LENGTH
+ *
+ * This setting configures the size of the external MAC's indirect queue. Must be
+ * at least '6' for a router in order to meet Thread 1.1 conformance requirements.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_INDIRECT_QUEUE_LENGTH
+#define OPENTHREAD_CONFIG_INDIRECT_QUEUE_LENGTH 6
+#endif
+
 #endif // OPENTHREAD_CORE_DEFAULT_CONFIG_H_

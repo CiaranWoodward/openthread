@@ -36,6 +36,8 @@
 
 #include "openthread-core-config.h"
 
+#if OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
+
 #include "common/locator.hpp"
 #include "common/tasklet.hpp"
 #include "mac/mac_extern.hpp"
@@ -478,5 +480,7 @@ private:
  */
 
 } // namespace ot
+
+#endif // OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
 
 #endif // MESH_FORWARDER_HPP_

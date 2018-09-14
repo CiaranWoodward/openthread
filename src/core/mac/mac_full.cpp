@@ -31,11 +31,11 @@
  *   This file implements the subset of IEEE 802.15.4 primitives required for Thread.
  */
 
-#if !OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
-
 #define WPP_NAME "mac_full.tmh"
 
 #include "mac_full.hpp"
+
+#if !OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
 
 #include <stdio.h>
 #include "utils/wrap_string.h"

@@ -31,12 +31,12 @@
  *   This file includes definitions for the IEEE 802.15.4 MAC.
  */
 
-#if OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
-
 #ifndef MAC_EXTERN_HPP_
 #define MAC_EXTERN_HPP_
 
 #include "openthread-core-config.h"
+
+#if OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
 
 #include <openthread/platform/radio-mac.h>
 
@@ -389,6 +389,21 @@ public:
     otError PurgeFrameRequest(Sender &aSender);
 
     /**
+     * This method registers a Out of Band frame for MAC Transmission.
+     * An Out of Band frame is one that was generated outside of OpenThread.
+     *
+     * @param[in]  aOobFrame  A pointer to the frame.
+     *
+     * @retval OT_ERROR_NOT_IMPLEMENTED     Not implemented
+     *
+     */
+    otError SendOutOfBandFrameRequest(otRadioFrame *aOobFrame)
+    {
+        (void)aOobFrame;
+        return OT_ERROR_NOT_IMPLEMENTED;
+    }
+
+    /**
      * This method generates a random IEEE 802.15.4 Extended Address.
      *
      * @param[out]  aExtAddress  A pointer to where the generated Extended Address is placed.
@@ -436,7 +451,7 @@ public:
      * @returns The IEEE 802.15.4 Channel.
      *
      */
-    uint8_t GetChannel(void) const { return mChannel; }
+    uint8_t GetPanChannel(void) const { return mChannel; }
 
     /**
      * This method sets the IEEE 802.15.4 Channel.
@@ -446,7 +461,23 @@ public:
      * @retval OT_ERROR_NONE  Successfully set the IEEE 802.15.4 Channel.
      *
      */
-    otError SetChannel(uint8_t aChannel);
+    otError SetPanChannel(uint8_t aChannel);
+
+    /**
+     * This method returns the supported channel mask.
+     *
+     * @returns The supported channel mask.
+     *
+     */
+    const ChannelMask &GetSupportedChannelMask(void) const { return mSupportedChannelMask; }
+
+    /**
+     * This method sets the supported channel mask
+     *
+     * @param[in] aMask   The supported channel mask.
+     *
+     */
+    void SetSupportedChannelMask(const ChannelMask &aMask);
 
     /**
      * This method returns the IEEE 802.15.4 Network Name.
@@ -465,6 +496,18 @@ public:
      *
      */
     otError SetNetworkName(const char *aNetworkName);
+
+    /**
+     * This method sets the IEEE 802.15.4 Network Name.
+     *
+     * @param[in]  aBuffer  A pointer to the char buffer containing the name. Does not need to be null terminated.
+     * @param[in]  aLength  Number of chars in the buffer.
+     *
+     * @retval OT_ERROR_NONE           Successfully set the IEEE 802.15.4 Network Name.
+     * @retval OT_ERROR_INVALID_ARGS   Given name is too long.
+     *
+     */
+    otError SetNetworkName(const char *aBuffer, uint8_t aLength);
 
     /**
      * This method returns the IEEE 802.15.4 PAN ID.
@@ -500,7 +543,7 @@ public:
      * @retval OT_ERROR_NONE  Successfully set the IEEE 802.15.4 Extended PAN ID.
      *
      */
-    otError SetExtendedPanId(const uint8_t *aExtPanId);
+    otError SetExtendedPanId(const otExtendedPanId &aExtendedPanId);
 
 #if OPENTHREAD_ENABLE_MAC_FILTER
     /**
@@ -698,10 +741,41 @@ public:
      */
     void SetFrameCounter(uint32_t aFrameCounter);
 
+    /**
+     * This method Starts/Stops the Link layer. It may only be used when the Netif Interface is down
+     *
+     * @param[in]  aEnable The requested State for the MAC layer. true - Start, false - Stop.
+     *
+     * @retval OT_ERROR_NONE   The operation succeeded or the new State equals the current State.
+     *
+     */
+    otError SetEnabled(bool aEnable);
+
+    /**
+     * This method returns the current CCA (Clear Channel Assessment) failure rate.
+     *
+     * The rate is maintained over a window of (roughly) last `OPENTHREAD_CONFIG_CCA_FAILURE_RATE_AVERAGING_WINDOW`
+     * frame transmissions.
+     *
+     * @returns The CCA failure rate with maximum value `0xffff` corresponding to 100% failure rate.
+     *
+     */
+    uint16_t GetCcaFailureRate(void) const { return mCcaSuccessRateTracker.GetFailureRate(); }
+
+    /**
+     * This method indicates whether or not the link layer is enabled.
+     *
+     * @retval true   Link layer is enabled.
+     * @retval false  Link layer is not enabled.
+     *
+     */
+    bool IsEnabled(void) { return mEnabled; }
+
 private:
     enum
     {
-        kInvalidRssiValue = 127
+        kInvalidRssiValue  = 127,
+        kMaxCcaSampleCount = OPENTHREAD_CONFIG_CCA_FAILURE_RATE_AVERAGING_WINDOW,
     };
 
     enum Operation
@@ -758,6 +832,7 @@ private:
     bool mPendingWaitingForData : 1;
     bool mRxOnWhenIdle : 1;
     bool mBeaconsEnabled : 1;
+    bool mEnabled : 1;
 #if OPENTHREAD_CONFIG_STAY_AWAKE_BETWEEN_FRAGMENTS
     bool mDelaySleep : 1;
 #endif
@@ -771,8 +846,9 @@ private:
     uint8_t      mMode2DevHandle;
     uint8_t      mJoinerEntrustResponseHandle;
     uint8_t      mTempChannelMessageHandle;
+    ChannelMask  mSupportedChannelMask;
 
-    uint8_t mDeviceCurrentKeys[OPENTHREAD_CONFIG_HARDMAC_DEVICE_TABLE_SIZE];
+    uint8_t mDeviceCurrentKeys[OPENTHREAD_CONFIG_EXTERNAL_MAC_DEVICE_TABLE_SIZE];
 
     Notifier::Callback mNotifierCallback;
 
@@ -799,7 +875,9 @@ private:
         otStartRequest mStartReq;
     };
 
-    otMacCounters mCounters;
+    SuccessRateTracker mCcaSuccessRateTracker;
+    uint16_t           mCcaSampleCount;
+    otMacCounters      mCounters;
 #if OPENTHREAD_ENABLE_MAC_FILTER
     Filter mFilter;
 #endif // OPENTHREAD_ENABLE_MAC_FILTER

@@ -31,11 +31,11 @@
  *   This file implements the subset of IEEE 802.15.4 primitives required for Thread.
  */
 
-#if OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
-
 #define WPP_NAME "mac_extern.tmh"
 
 #include "mac_extern.hpp"
+
+#if OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
 
 #include "utils/wrap_string.h"
 
@@ -66,8 +66,10 @@ static const otExtAddress sMode2ExtAddress = {
     {0x35, 0x06, 0xfe, 0xb8, 0x23, 0xd4, 0x87, 0x12},
 };
 
-static const uint8_t sExtendedPanidInit[] = {0xde, 0xad, 0x00, 0xbe, 0xef, 0x00, 0xca, 0xfe};
-static const char    sNetworkNameInit[]   = "OpenThread";
+static const otExtendedPanId sExtendedPanidInit = {
+    {0xde, 0xad, 0x00, 0xbe, 0xef, 0x00, 0xca, 0xfe},
+};
+static const char sNetworkNameInit[] = "OpenThread";
 
 Mac::Mac(Instance &aInstance)
     : InstanceLocator(aInstance)
@@ -80,6 +82,7 @@ Mac::Mac(Instance &aInstance)
     , mMode2DevHandle(0)
     , mJoinerEntrustResponseHandle(0)
     , mTempChannelMessageHandle(0)
+    , mSupportedChannelMask(OT_RADIO_SUPPORTED_CHANNELS)
     , mDeviceCurrentKeys()
     , mNotifierCallback(sStateChangedCallback, this)
     , mSendHead(NULL)
@@ -105,6 +108,7 @@ Mac::Mac(Instance &aInstance)
     SetExtAddress(mExtAddress);
     SetShortAddress(mShortAddress);
     GetInstance().GetNotifier().RegisterCallback(mNotifierCallback);
+    mCcaSuccessRateTracker.Reset();
 }
 
 otError Mac::ActiveScan(uint32_t aScanChannels, uint16_t aScanDuration, ActiveScanHandler aHandler, void *aContext)
@@ -145,6 +149,7 @@ otError Mac::Scan(Operation aScanOperation, uint32_t aScanChannels, uint16_t aSc
     uint8_t scanDuration = 0; // The scan duration as defined by the 802.15.4 spec as being
                               // log2(aScanDuration/(aBaseSuperframeDuration * aSymbolPeriod))
 
+    VerifyOrExit(mEnabled, error = OT_ERROR_INVALID_STATE);
     VerifyOrExit(!IsScanInProgress(), error = OT_ERROR_BUSY);
 
     mScanContext  = aContext;
@@ -221,7 +226,7 @@ void Mac::HandleScanConfirm(otScanConfirm *aScanConfirm)
     if (IsActiveScanInProgress())
     {
         VerifyOrExit(mActiveScanHandler != NULL);
-        mActiveScanHandler(NULL, mScanContext);
+        mActiveScanHandler(mScanContext, NULL);
     }
     else
     {
@@ -240,9 +245,9 @@ void Mac::HandleScanConfirm(otScanConfirm *aScanConfirm)
             result.mChannel = curChannel;
 
             mScanChannels &= ~(1 << curChannel);
-            mEnergyScanHandler(&result, mScanContext);
+            mEnergyScanHandler(mScanContext, &result);
         }
-        mEnergyScanHandler(NULL, mScanContext);
+        mEnergyScanHandler(mScanContext, NULL);
     }
 
 exit:
@@ -268,12 +273,10 @@ exit:
 
 void Mac::HandleBeaconNotification(otBeaconNotify *aBeaconNotify)
 {
-    otActiveScanResult aResult;
-
     VerifyOrExit(mActiveScanHandler != NULL);
     VerifyOrExit(aBeaconNotify != NULL);
 
-    mActiveScanHandler(aBeaconNotify, mScanContext);
+    mActiveScanHandler(mScanContext, aBeaconNotify);
 exit:
     return;
 }
@@ -386,14 +389,16 @@ otError Mac::SetShortAddress(ShortAddress aShortAddress)
     return error;
 }
 
-otError Mac::SetChannel(uint8_t aChannel)
+otError Mac::SetPanChannel(uint8_t aChannel)
 {
     otError error = OT_ERROR_NONE;
 
     VerifyOrExit(OT_RADIO_CHANNEL_MIN <= aChannel && aChannel <= OT_RADIO_CHANNEL_MAX, error = OT_ERROR_INVALID_ARGS);
+    VerifyOrExit(mSupportedChannelMask.ContainsChannel(aChannel), error = OT_ERROR_INVALID_ARGS);
     VerifyOrExit(mChannel != aChannel);
     mChannel = aChannel;
     error    = otPlatMlmeSet(&GetInstance(), OT_PIB_PHY_CURRENT_CHANNEL, 0, 1, &mChannel);
+    mCcaSuccessRateTracker.Reset();
 
 exit:
     return error;
@@ -404,6 +409,7 @@ otError Mac::SetTempChannel(uint8_t aChannel, otDataRequest &aDataRequest)
     otError error = OT_ERROR_NONE;
 
     VerifyOrExit(OT_RADIO_CHANNEL_MIN <= aChannel && aChannel <= OT_RADIO_CHANNEL_MAX, error = OT_ERROR_INVALID_ARGS);
+    VerifyOrExit(mSupportedChannelMask.ContainsChannel(aChannel), error = OT_ERROR_INVALID_ARGS);
     VerifyOrExit(mChannel != aChannel);
     VerifyOrExit(!(aDataRequest.mTxOptions & OT_MAC_TX_OPTION_INDIRECT), error = OT_ERROR_INVALID_ARGS);
 
@@ -423,13 +429,38 @@ otError Mac::RestoreChannel()
     return error;
 }
 
+void Mac::SetSupportedChannelMask(const ChannelMask &aMask)
+{
+    ChannelMask newMask = aMask;
+
+    newMask.Intersect(OT_RADIO_SUPPORTED_CHANNELS);
+    VerifyOrExit(newMask != mSupportedChannelMask, GetNotifier().SignalIfFirst(OT_CHANGED_SUPPORTED_CHANNEL_MASK));
+
+    mSupportedChannelMask = newMask;
+    GetNotifier().Signal(OT_CHANGED_SUPPORTED_CHANNEL_MASK);
+
+exit:
+    return;
+}
+
 otError Mac::SetNetworkName(const char *aNetworkName)
 {
+    return SetNetworkName(aNetworkName, OT_NETWORK_NAME_MAX_SIZE + 1);
+}
+
+otError Mac::SetNetworkName(const char *aBuffer, uint8_t aLength)
+{
     otError error = OT_ERROR_NONE;
+    uint8_t len   = static_cast<uint8_t>(strnlen(aBuffer, aLength));
 
-    VerifyOrExit(strlen(aNetworkName) <= OT_NETWORK_NAME_MAX_SIZE, error = OT_ERROR_INVALID_ARGS);
+    VerifyOrExit(len <= OT_NETWORK_NAME_MAX_SIZE, error = OT_ERROR_INVALID_ARGS);
+    VerifyOrExit(memcmp(mNetworkName.m8, aBuffer, len) != 0,
+                 GetNotifier().SignalIfFirst(OT_CHANGED_THREAD_NETWORK_NAME));
 
-    strlcpy(mNetworkName.m8, aNetworkName, sizeof(mNetworkName));
+    memcpy(mNetworkName.m8, aBuffer, len);
+    mNetworkName.m8[len] = 0;
+
+    GetNotifier().Signal(OT_CHANGED_THREAD_NETWORK_NAME);
     BuildBeacon();
 
 exit:
@@ -450,9 +481,9 @@ exit:
     return error;
 }
 
-otError Mac::SetExtendedPanId(const uint8_t *aExtPanId)
+otError Mac::SetExtendedPanId(const otExtendedPanId &aExtendedPanId)
 {
-    memcpy(mExtendedPanId.m8, aExtPanId, sizeof(mExtendedPanId));
+    mExtendedPanId = aExtendedPanId;
     BuildBeacon();
     return OT_ERROR_NONE;
 }
@@ -462,6 +493,8 @@ otError Mac::SendFrameRequest(Sender &aSender)
     otError error = OT_ERROR_NONE;
     otLogDebgMac(GetInstance(), "Mac::SendFrameRequest called (Sender %d)", aSender.mMeshSender);
     assert(mSendTail != &aSender && aSender.mNext == NULL);
+
+    VerifyOrExit(mEnabled, error = OT_ERROR_INVALID_STATE);
 
     if (mSendHead == NULL)
     {
@@ -475,6 +508,8 @@ otError Mac::SendFrameRequest(Sender &aSender)
     }
 
     StartOperation(kOperationTransmitData);
+
+exit:
     return error;
 }
 
@@ -506,6 +541,16 @@ void Mac::StartOperation(Operation aOperation)
     if (aOperation == kOperationTransmitData && mOperation == kOperationTransmitData)
     {
         HandleBeginTransmit();
+        ExitNow();
+    }
+
+    if (!mEnabled)
+    {
+        mPendingWaitingForData = false;
+        mPendingActiveScan     = false;
+        mPendingEnergyScan     = false;
+        mPendingTransmitBeacon = false;
+        mPendingTransmitData   = false;
         ExitNow();
     }
 
@@ -714,9 +759,6 @@ exit:
 
 otError Mac::BuildRouterDeviceDescriptors(uint8_t &aDevIndex, uint8_t &aNumActiveDevices, uint8_t aIgnoreRouterId)
 {
-    uint8_t numChildren, numRouters;
-    Child * childList;
-    Router *routerList;
     otError error = OT_ERROR_NONE;
 
     for (ChildTable::Iterator iter(GetInstance(), ChildTable::kInStateValidOrRestoring); !iter.IsDone(); iter++)
@@ -1221,17 +1263,28 @@ exit:
 
 void Mac::TransmitDoneTask(uint8_t aMsduHandle, int aMacError)
 {
-    otError error  = OT_ERROR_NONE;
-    Sender *sender = PopSendingSender(aMsduHandle);
+    otError error      = OT_ERROR_NONE;
+    Sender *sender     = PopSendingSender(aMsduHandle);
+    bool    ccaSuccess = true;
 
     VerifyOrExit(sender != NULL);
 
     switch (aMacError)
     {
+    case OT_MAC_STATUS_CHANNEL_ACCESS_FAILURE:
+        error      = OT_ERROR_CHANNEL_ACCESS_FAILURE;
+        ccaSuccess = false;
+    case OT_MAC_STATUS_NO_ACK:
+        error = OT_ERROR_NO_ACK;
     case OT_MAC_STATUS_SUCCESS:
+        // TODO: if not on PAN channel skip cca tracking
+        if (mCcaSampleCount < kMaxCcaSampleCount)
+        {
+            mCcaSampleCount++;
+        }
+        mCcaSuccessRateTracker.AddSample(ccaSuccess, mCcaSampleCount);
         break;
 
-    case OT_MAC_STATUS_CHANNEL_ACCESS_FAILURE:
     case OT_MAC_STATUS_TRANSACTION_OVERFLOW:
         error = OT_ERROR_CHANNEL_ACCESS_FAILURE;
         break;
@@ -1358,8 +1411,8 @@ void Mac::ProcessDataIndication(otDataIndication *aDataIndication)
 
     VerifyOrExit(aDataIndication != NULL, error = OT_ERROR_NO_FRAME_RECEIVED);
 
-    static_cast<FullAddr>(aDataIndication->mSrc).GetAddress(srcaddr);
-    static_cast<FullAddr>(aDataIndication->mDst).GetAddress(dstaddr);
+    static_cast<FullAddr *>(&aDataIndication->mSrc)->GetAddress(srcaddr);
+    static_cast<FullAddr *>(&aDataIndication->mDst)->GetAddress(dstaddr);
     neighbor = GetNetif().GetMle().GetNeighbor(srcaddr);
 
     // Allow  multicasts from neighbor routers if FFD
@@ -1689,6 +1742,15 @@ otError FullAddr::SetAddress(const Address &aAddress)
         break;
     }
     return error;
+}
+
+otError Mac::SetEnabled(bool aEnable)
+{
+    mEnabled = aEnable;
+
+    otPlatMlmeReset(&GetInstance(), true);
+
+    return OT_ERROR_NONE;
 }
 
 extern "C" otError otPlatRadioGetTransmitPower(otInstance *aInstance, int8_t *aPower)

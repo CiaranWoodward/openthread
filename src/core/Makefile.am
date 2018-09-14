@@ -149,6 +149,7 @@ SOURCES_COMMON                          = \
     crypto/mbedtls.cpp                    \
     crypto/pbkdf2_cmac.cpp                \
     crypto/sha256.cpp                     \
+    mac/mac_extern.cpp                    \
     mac/mac_full.cpp                      \
     mac/mac_filter.cpp                    \
     mac/mac_frame.cpp                     \
@@ -189,6 +190,9 @@ SOURCES_COMMON                          = \
     thread/key_manager.cpp                \
     thread/link_quality.cpp               \
     thread/lowpan.cpp                     \
+    thread/mesh_forwarder_externmac.cpp   \
+    thread/mesh_forwarder_externmac_ftd.cpp \
+    thread/mesh_forwarder_externmac_mtd.cpp \
     thread/mesh_forwarder_fullmac.cpp     \
     thread/mesh_forwarder_fullmac_ftd.cpp \
     thread/mesh_forwarder_fullmac_mtd.cpp \
@@ -282,6 +286,7 @@ HEADERS_COMMON                      = \
     mac/mac_filter.hpp                \
     mac/mac_frame.hpp                 \
     mac/mac_full.hpp                  \
+    mac/mac_extern.hpp                \
     meshcop/announce_begin_client.hpp \
     meshcop/border_agent.hpp          \
     meshcop/commissioner.hpp          \
@@ -324,6 +329,7 @@ HEADERS_COMMON                      = \
     thread/lowpan.hpp                 \
     thread/mesh_forwarder.hpp         \
     thread/mesh_forwarder_fullmac.hpp \
+    thread/mesh_forwarder_externmac.hpp \
     thread/mle.hpp                    \
     thread/mle_constants.hpp          \
     thread/mle_router.hpp             \

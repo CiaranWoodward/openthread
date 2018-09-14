@@ -34,6 +34,8 @@
 #ifndef MAC_HPP_
 #define MAC_HPP_
 
+#include "openthread-core-config.h"
+
 #if OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
 #include "mac/mac_extern.hpp"
 #else
