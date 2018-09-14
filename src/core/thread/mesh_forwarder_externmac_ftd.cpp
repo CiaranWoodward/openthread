@@ -626,8 +626,7 @@ exit:
     if (error != OT_ERROR_NONE)
     {
         otLogInfoMac(GetInstance(), "Dropping rx mesh frame, error:%s, len:%d, src:%s, sec:%s",
-                     otThreadErrorToString(error), aFrameLength,
-                     aMacSource.ToString(srcStringBuffer, sizeof(srcStringBuffer)),
+                     otThreadErrorToString(error), aFrameLength, aMacSource.ToString().AsCString(),
                      aLinkInfo.mLinkSecurity ? "yes" : "no");
 
         if (message != NULL)

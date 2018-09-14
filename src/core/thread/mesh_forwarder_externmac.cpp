@@ -1604,9 +1604,8 @@ exit:
     {
         otLogInfoMac(GetInstance(),
                      "Dropping rx frag frame, error:%s, len:%d, src:%s, dst:%s, tag:%d, offset:%d, dglen:%d, sec:%s",
-                     otThreadErrorToString(error), aFrameLength,
-                     aMacSource.ToString(srcStringBuffer, sizeof(srcStringBuffer)),
-                     aMacDest.ToString(dstStringBuffer, sizeof(dstStringBuffer)), fragmentHeader.GetDatagramTag(),
+                     otThreadErrorToString(error), aFrameLength, aMacSource.ToString().AsCString(),
+                     aMacDest.ToString().AsCString(), fragmentHeader.GetDatagramTag(),
                      fragmentHeader.GetDatagramOffset(), fragmentHeader.GetDatagramSize(),
                      aLinkInfo.mLinkSecurity ? "yes" : "no");
 
@@ -1707,10 +1706,9 @@ exit:
     }
     else
     {
-        otLogInfoMac(
-            GetInstance(), "Dropping rx lowpan HC frame, error:%s, len:%d, src:%s, dst:%s, sec:%s",
-            otThreadErrorToString(error), aFrameLength, aMacSource.ToString(srcStringBuffer, sizeof(srcStringBuffer)),
-            aMacDest.ToString(dstStringBuffer, sizeof(dstStringBuffer)), aLinkInfo.mLinkSecurity ? "yes" : "no");
+        otLogInfoMac(GetInstance(), "Dropping rx lowpan HC frame, error:%s, len:%d, src:%s, dst:%s, sec:%s",
+                     otThreadErrorToString(error), aFrameLength, aMacSource.ToString().AsCString(),
+                     aMacDest.ToString().AsCString(), aLinkInfo.mLinkSecurity ? "yes" : "no");
 
         if (message != NULL)
         {
@@ -1750,8 +1748,6 @@ void MeshForwarder::LogIp6Message(MessageAction       aAction,
     const char * priorityText;
     bool         shouldLogRss             = false;
     bool         shouldLogSrcDstAddresses = true;
-    char         stringBuffer[Ip6::Address::kIp6AddressStringSize];
-    char         rssString[RssAverager::kStringSize];
 
     VerifyOrExit(aMessage.GetType() == Message::kTypeIp6);
 
@@ -1854,25 +1850,23 @@ void MeshForwarder::LogIp6Message(MessageAction       aAction,
         priorityText = "unknown";
         break;
     }
-
     otLogInfoMac(GetInstance(), "%s IPv6 %s msg, len:%d, chksum:%04x%s%s, sec:%s%s%s, prio:%s%s%s", actionText,
                  Ip6::Ip6::IpProtoToString(protocol), aMessage.GetLength(), checksum,
                  (aMacAddress == NULL) ? "" : ((aAction == kMessageReceive) ? ", from:" : ", to:"),
-                 (aMacAddress == NULL) ? "" : aMacAddress->ToString(stringBuffer, sizeof(stringBuffer)),
+                 (aMacAddress == NULL) ? "" : aMacAddress->ToString().AsCString(),
                  aMessage.IsLinkSecurityEnabled() ? "yes" : "no", (aError == OT_ERROR_NONE) ? "" : ", error:",
                  (aError == OT_ERROR_NONE) ? "" : otThreadErrorToString(aError), priorityText,
-                 shouldLogRss ? ", rss:" : "",
-                 shouldLogRss ? aMessage.GetRssAverager().ToString(rssString, sizeof(rssString)) : "");
+                 shouldLogRss ? ", rss:" : "", shouldLogRss ? aMessage.GetRssAverager().ToString().AsCString() : "");
 
     if (shouldLogSrcDstAddresses)
     {
-        otLogInfoMac(GetInstance(), "src: %s", ip6Header.GetSource().ToString(stringBuffer, sizeof(stringBuffer)));
-        otLogInfoMac(GetInstance(), "dst: %s", ip6Header.GetDestination().ToString(stringBuffer, sizeof(stringBuffer)));
+        otLogInfoMac(GetInstance(), "src: %s", ip6Header.GetSource().ToString().AsCString());
+        otLogInfoMac(GetInstance(), "dst: %s", ip6Header.GetDestination().ToString().AsCString());
     }
 
 exit:
     return;
-}
+} // namespace ot
 
 #else // #if (OPENTHREAD_CONFIG_LOG_LEVEL >= OT_LOG_LEVEL_INFO) && (OPENTHREAD_CONFIG_LOG_MAC == 1)
 

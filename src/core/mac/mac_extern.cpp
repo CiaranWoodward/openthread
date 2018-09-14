@@ -1498,7 +1498,7 @@ void Mac::ProcessDataIndication(otDataIndication *aDataIndication)
     // Source Address Filtering
     if (srcaddr.IsShort())
     {
-        otLogDebgMac(GetInstance(), "Received frame from short address 0x%04x", srcaddr.mShortAddress);
+        otLogDebgMac(GetInstance(), "Received frame from short address 0x%04x", srcaddr.GetShort());
 
         if (neighbor == NULL)
         {
