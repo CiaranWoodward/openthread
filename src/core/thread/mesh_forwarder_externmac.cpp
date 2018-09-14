@@ -906,6 +906,7 @@ otError MeshSender::SendFragment(Message &aMessage, Mac::Frame &aFrame, otDataRe
     // initialize MAC header and frame info
     memset(&aDataReq, 0, sizeof(aDataReq));
     static_cast<Mac::FullAddr *>(&aDataReq.mDst)->SetAddress(mMacDest);
+    aDataReq.mSrcAddrMode = mMacSource.GetType();
 
     // all unicast frames request ACK
     if (!mMacDest.IsBroadcast())
@@ -1114,6 +1115,7 @@ otError MeshSender::SendEmptyFrame(bool aAckRequest, otDataRequest &aDataReq)
 
     Encoding::LittleEndian::WriteUint16(netif.GetMac().GetPanId(), aDataReq.mDst.mPanId);
     static_cast<Mac::FullAddr *>(&aDataReq.mDst)->SetAddress(mMacDest);
+    aDataReq.mSrcAddrMode = mMacSource.GetType();
 
     aDataReq.mSecurity.mKeyIdMode     = 1;
     aDataReq.mSecurity.mSecurityLevel = Mac::Frame::kSecEncMic32;

@@ -218,9 +218,9 @@ public:
      */
     enum Type
     {
-        kTypeNone,     ///< No address.
-        kTypeShort,    ///< IEEE 802.15.4 Short Address.
-        kTypeExtended, ///< IEEE 802.15.4 Extended Address.
+        kTypeNone     = 0, ///< No address.
+        kTypeShort    = 2, ///< IEEE 802.15.4 Short Address.
+        kTypeExtended = 3, ///< IEEE 802.15.4 Extended Address.
     };
 
     /**
