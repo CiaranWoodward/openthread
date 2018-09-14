@@ -1872,7 +1872,7 @@ void Interpreter::ProcessPromiscuous(int argc, char *argv[])
 
     if (argc == 0)
     {
-        if (otLinkIsPromiscuous(mInstance) && otPlatRadioGetPromiscuous(mInstance))
+        if (otLinkIsPromiscuous(mInstance))
         {
             mServer->OutputFormat("Enabled\r\n");
         }

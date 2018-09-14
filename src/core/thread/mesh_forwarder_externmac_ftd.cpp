@@ -353,6 +353,19 @@ void MeshForwarder::RemoveMessages(Child &aChild, uint8_t aSubType)
     }
 }
 
+void MeshForwarder::RemoveDataResponseMessages(void)
+{
+    for (Message *message = mSendQueue.GetHead(); message; message = message->GetNext())
+    {
+        if (message->GetSubType() != Message::kSubTypeMleDataResponse)
+        {
+            continue;
+        }
+
+        RemoveMessage(*message);
+    }
+}
+
 Message *MeshForwarder::GetIndirectTransmission(Child &aChild)
 {
     Message *message = NULL;

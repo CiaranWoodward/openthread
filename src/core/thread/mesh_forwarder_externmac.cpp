@@ -1433,6 +1433,21 @@ exit:
     }
 }
 
+otError MeshForwarder::SkipMeshHeader(const uint8_t *&aFrame, uint8_t &aFrameLength)
+{
+    otError            error = OT_ERROR_NONE;
+    Lowpan::MeshHeader meshHeader;
+
+    VerifyOrExit(aFrameLength >= 1 && reinterpret_cast<const Lowpan::MeshHeader *>(aFrame)->IsMeshHeader());
+
+    SuccessOrExit(error = meshHeader.Init(aFrame, aFrameLength));
+    aFrame += meshHeader.GetHeaderLength();
+    aFrameLength -= meshHeader.GetHeaderLength();
+
+exit:
+    return error;
+}
+
 otError MeshForwarder::DecompressIp6Header(const uint8_t *     aFrame,
                                            uint8_t             aFrameLength,
                                            const Mac::Address &aMacSource,
