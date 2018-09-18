@@ -1095,6 +1095,7 @@ otError MeshSender::SendIdleFrame(otDataRequest &aDataReq)
 
     Encoding::LittleEndian::WriteUint16(netif.GetMac().GetPanId(), aDataReq.mDst.mPanId);
     static_cast<Mac::FullAddr *>(&aDataReq.mDst)->SetAddress(mMacDest);
+    aDataReq.mSrcAddrMode = OT_MAC_ADDRESS_MODE_SHORT;
     aDataReq.mTxOptions |= OT_MAC_TX_OPTION_INDIRECT;
     aDataReq.mMsduLength = 0;
 
@@ -1393,8 +1394,8 @@ void MeshForwarder::HandleReceivedFrame(otDataIndication &aDataIndication)
         ExitNow(error = OT_ERROR_INVALID_STATE);
     }
 
-    static_cast<Mac::FullAddr *>(&aDataIndication.mSrc)->SetAddress(macSource);
-    static_cast<Mac::FullAddr *>(&aDataIndication.mDst)->SetAddress(macDest);
+    static_cast<Mac::FullAddr *>(&aDataIndication.mSrc)->GetAddress(macSource);
+    static_cast<Mac::FullAddr *>(&aDataIndication.mDst)->GetAddress(macDest);
 
     linkInfo.mPanId        = Encoding::LittleEndian::ReadUint16(aDataIndication.mSrc.mPanId);
     linkInfo.mChannel      = netif.GetMac().GetPanChannel();

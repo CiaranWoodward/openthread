@@ -985,7 +985,7 @@ otError MleRouter::HandleLinkAccept(const Message &         aMessage,
     router->SetState(Neighbor::kStateValid);
     router->SetKeySequence(aKeySequence);
 #if OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
-    GetNetif().GetMac().UpdateDevice(*router);
+    GetNetif().GetMac().BuildSecurityTable();
 #endif
 
     if (aRequest)

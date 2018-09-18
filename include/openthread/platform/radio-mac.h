@@ -408,7 +408,7 @@ typedef struct otKeyDeviceDesc
     uint8_t mDeviceDescriptorHandle; ///< 802.15.4 Device descriptor handle
     uint8_t mUniqueDevice : 1;       ///< 802.15.4 Unique Device flag
     uint8_t mBlacklisted : 1;        ///< 802.15.4 Blacklist Flag
-#if OPENTHREAD_CONFIG_HARDMAC_SEC_TABLE_SHARED_DD
+#if OPENTHREAD_CONFIG_EXTERNAL_MAC_SHARED_DD
     uint8_t mNew : 1; // Optional memory-saving Extension to minimise number of saved frame counter
 #endif
 } otKeyDeviceDesc;

@@ -804,7 +804,7 @@ otError Mac::BuildDeviceDescriptor(Neighbor &aNeighbor, uint8_t &aIndex)
     keyNum = 1 + GetNetif().GetKeyManager().GetCurrentKeySequence() - aNeighbor.GetKeySequence();
     VerifyOrExit(keyNum >= 0 && keyNum <= 2, error = OT_ERROR_SECURITY);
 
-#if !OPENTHREAD_CONFIG_HARDMAC_SEC_TABLE_SHARED_DD
+#if !OPENTHREAD_CONFIG_EXTERNAL_MAC_SHARED_DD
     reps      = 3;
     keyOffset = keyNum;
 #endif
@@ -988,7 +988,7 @@ void Mac::BuildMainKeyDescriptors(uint8_t aDeviceCount, uint8_t &aIndex)
     uint32_t        keySequence   = GetNetif().GetKeyManager().GetCurrentKeySequence() - 1;
     uint8_t         ddReps        = 3;
 
-#if OPENTHREAD_CONFIG_HARDMAC_SEC_TABLE_SHARED_DD
+#if OPENTHREAD_CONFIG_EXTERNAL_MAC_SHARED_DD
     ddReps = 1;
 #endif
 
@@ -1020,7 +1020,7 @@ void Mac::BuildMainKeyDescriptors(uint8_t aDeviceCount, uint8_t &aIndex)
             else
                 keyTableEntry.mKeyDeviceDesc[j].mBlacklisted = 0;
 
-#if OPENTHREAD_CONFIG_HARDMAC_SEC_TABLE_SHARED_DD
+#if OPENTHREAD_CONFIG_EXTERNAL_MAC_SHARED_DD
             if (i > mDeviceCurrentKeys[j])
                 keyTableEntry.mKeyDeviceDesc[j].mNew = 1;
             else
