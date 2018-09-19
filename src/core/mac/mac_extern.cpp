@@ -848,10 +848,7 @@ otError Mac::BuildRouterDeviceDescriptors(uint8_t &aDevIndex, uint8_t &aNumActiv
         if (router->GetRouterId() == aIgnoreRouterId)
             continue; // Ignore self
 
-        if (!router->IsStateValidOrRestoring())
-            continue; // Ignore invalid routers
-
-        if (Mle::MleRouter::IsRouterIdValid(router->GetNextHop()))
+        if (GetNetif().GetMle().GetNeighbor(router->GetRloc16()) == NULL)
             continue; // Ignore non-neighbors
 
         error = BuildDeviceDescriptor(*router, aDevIndex);
