@@ -1025,6 +1025,14 @@ void Mac::BuildMainKeyDescriptors(uint8_t aDeviceCount, uint8_t &aIndex)
 #endif
         }
 
+        otLogDebgMac(GetInstance(), "Built Key at index %d", aIndex);
+        for (int j = 0; j < aDeviceCount; j++)
+        {
+            otLogDebgMac(GetInstance(), "Device Desc handle %d, blacklisted %d",
+                         keyTableEntry.mKeyDeviceDesc[j].mDeviceDescriptorHandle,
+                         keyTableEntry.mKeyDeviceDesc[j].mBlacklisted);
+        }
+
         otPlatMlmeSet(&GetInstance(), OT_PIB_MAC_KEY_TABLE, aIndex, sizeof(keyTableEntry),
                       reinterpret_cast<uint8_t *>(&keyTableEntry));
 
