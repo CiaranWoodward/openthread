@@ -580,11 +580,9 @@ void MeshForwarder::HandleMesh(uint8_t *               aFrame,
     meshSource.SetShort(meshHeader.GetSource());
     meshDest.SetShort(meshHeader.GetDestination());
 
-#if OPENTHREAD_FTD
     UpdateRoutes(aFrame, aFrameLength, meshSource, meshDest);
-#endif // OPENTHREAD_FTD
 
-    if (meshDest.GetShort() == netif.GetMac().GetShortAddress())
+    if (meshDest.GetShort() == netif.GetMac().GetShortAddress() || netif.GetMle().IsMinimalChild(meshDest.GetShort()))
     {
         aFrame += meshHeader.GetHeaderLength();
         aFrameLength -= meshHeader.GetHeaderLength();
