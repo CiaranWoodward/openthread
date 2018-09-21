@@ -87,10 +87,7 @@ MeshForwarder::MeshForwarder(Instance &aInstance)
     , mReassemblyTimer(aInstance, &MeshForwarder::HandleReassemblyTimer, this)
     , mDirectSender()
     , mOverflowSender(NULL)
-    , mOverflowMacSender(&MeshForwarder::HandleOverflowFrameRequest,
-                         MeshForwarder::HandleOverflowSentFrame,
-                         &mDirectSender,
-                         NULL)
+    , mOverflowMacSender(&MeshForwarder::HandleOverflowFrameRequest, MeshForwarder::HandleOverflowSentFrame, this, NULL)
 #if OPENTHREAD_CONFIG_INDIRECT_QUEUE_LENGTH == 0
     , mMeshSenders(NULL)
 #endif
