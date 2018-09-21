@@ -104,6 +104,7 @@ private:
 
     otError SendMesh(Message &aMessage, otDataRequest &aDataReq);
     otError SendFragment(Message &aMessage, Mac::Frame &aFrame, otDataRequest &aDataReq);
+    otError SendOverflowFragment(Message &aMessage, Mac::Frame &aFrame, otDataRequest &aDataReq);
     otError SendIdleFrame(otDataRequest &aDataReq);
     otError SendEmptyFrame(bool aAckRequest, otDataRequest &aDataReq);
 
@@ -433,6 +434,11 @@ private:
     void        ScheduleTransmissionTask(void);
     static void HandleDataPollTimeout(Mac::Receiver &aReceiver);
 
+    static otError HandleOverflowFrameRequest(Mac::Sender &aSender, Mac::Frame &aFrame, otDataRequest &aDataReq);
+    otError        HandleOverflowFrameRequest(Mac::Frame &aFrame, otDataRequest &aDataReq);
+    static void    HandleOverflowSentFrame(Mac::Sender &aSender, otError aError);
+    void           HandleOverflowSentFrame(otError aError);
+
 #if OPENTHREAD_FTD
 #if OPENTHREAD_ENABLE_SERVICE
     otError GetDestinationRlocByServiceAloc(uint16_t aServiceAloc, uint16_t &aMeshDest);
@@ -449,8 +455,17 @@ private:
     // WARNING: The MeshForwarder is very tightly coupled with the 'directSender'
     MeshSender mDirectSender;
 
+    /*
+     * The mOverflowSender is used for indirectly sending ip frames that take up more than 1 15.4 message. If a sender
+     * needs to do this, it should 'Claim' the overflow by pointing it to itself. It can only be claimed if it is not
+     * null. After it is done using the overflow potential, it should set the pointer back to NULL. This is used to
+     * control how much of the external MAC's resources each SED is permitted to consume.
+     */
+    MeshSender *mOverflowSender;
+
 #if OPENTHREAD_CONFIG_INDIRECT_QUEUE_LENGTH != 0
-    MeshSender mMeshSenders[kNumIndirectSenders];
+    Mac::Sender mOverflowMacSender;
+    MeshSender  mMeshSenders[kNumIndirectSenders];
 #else
     MeshSender *mMeshSenders;
 #endif

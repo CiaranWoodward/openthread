@@ -550,6 +550,7 @@ otError Mac::SetPanId(PanId aPanId)
     mPanId = aPanId;
     Encoding::LittleEndian::WriteUint16(mPanId, panId);
     otPlatMlmeSet(&GetInstance(), OT_PIB_MAC_PAN_ID, 0, 2, panId);
+    BuildSecurityTable();
 
 exit:
     return error;
@@ -1603,7 +1604,20 @@ void Mac::ProcessCommStatusIndication(otCommStatusIndication *aCommStatusIndicat
 
     if (aCommStatusIndication->mSrcAddrMode == OT_MAC_ADDRESS_MODE_SHORT)
     {
+        uint16_t  srcAddr = Encoding::LittleEndian::ReadUint16(aCommStatusIndication->mSrcAddr);
+        Neighbor *neighbor;
         otDumpDebgMac(GetInstance(), "From: ", aCommStatusIndication->mSrcAddr, 2);
+        if ((neighbor = GetNetif().GetMle().GetNeighbor(srcAddr)) != NULL)
+        {
+            uint8_t buffer[128];
+            uint8_t len;
+            otLogWarnMac(GetInstance(), "Rejected frame from neighbor %x", srcAddr);
+            otPlatMlmeGet(&GetInstance(), OT_PIB_MAC_DEVICE_TABLE, neighbor->GetDeviceTableIndex(), &len, buffer);
+            otDumpDebgMac(GetInstance(), "DeviceDesc", buffer, len);
+            otPlatMlmeGet(&GetInstance(), OT_PIB_MAC_KEY_TABLE, aCommStatusIndication->mSecurity.mKeyIndex, &len,
+                          buffer);
+            otDumpDebgMac(GetInstance(), "KeyDesc", buffer, len);
+        }
     }
     else if (aCommStatusIndication->mSrcAddrMode == OT_MAC_ADDRESS_MODE_EXT)
     {

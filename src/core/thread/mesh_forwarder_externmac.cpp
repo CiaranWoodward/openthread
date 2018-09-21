@@ -86,12 +86,15 @@ MeshForwarder::MeshForwarder(Instance &aInstance)
     , mDiscoverTimer(aInstance, &MeshForwarder::HandleDiscoverTimer, this)
     , mReassemblyTimer(aInstance, &MeshForwarder::HandleReassemblyTimer, this)
     , mDirectSender()
-    ,
+    , mOverflowSender(NULL)
+    , mOverflowMacSender(&MeshForwarder::HandleOverflowFrameRequest,
+                         MeshForwarder::HandleOverflowSentFrame,
+                         &mDirectSender,
+                         NULL)
 #if OPENTHREAD_CONFIG_INDIRECT_QUEUE_LENGTH == 0
-    mMeshSenders(NULL)
-    ,
+    , mMeshSenders(NULL)
 #endif
-    mScheduleTransmissionTask(aInstance, ScheduleTransmissionTask, this)
+    , mScheduleTransmissionTask(aInstance, ScheduleTransmissionTask, this)
     , mEnabled(false)
     , mScanChannels(0)
     , mScanChannel(0)
@@ -1082,6 +1085,94 @@ otError MeshSender::SendFragment(Message &aMessage, Mac::Frame &aFrame, otDataRe
         mMessageNextOffset = aMessage.GetOffset() + payloadLength;
     }
 
+    if (!isDirectSender() && (mMessageNextOffset != aMessage.GetLength()))
+    {
+        // We have an indirect packet which requires more than a single 15.4 frame - attempt to use overflow
+        VerifyOrExit(mParent->mOverflowSender == NULL || mParent->mOverflowSender == this);
+        mParent->mOverflowSender = this;
+    }
+
+exit:
+
+    return error;
+}
+
+otError MeshSender::SendOverflowFragment(Message &aMessage, Mac::Frame &aFrame, otDataRequest &aDataReq)
+{
+    ThreadNetif &           netif = mParent->GetNetif();
+    Mac::Address            meshDest, meshSource;
+    Lowpan::FragmentHeader *fragmentHeader;
+    uint8_t *               payload;
+    uint8_t                 headerLength;
+    uint16_t                payloadLength;
+    uint16_t                fragmentLength;
+    otError                 error = OT_ERROR_NONE;
+
+    (void)aFrame;
+
+    VerifyOrExit(mParent->mEnabled, error = OT_ERROR_ABORT);
+
+    mSendBusy = true; // TODO: ???
+    mSendMessage->SetOffset(mMessageOffset);
+
+    mAckRequested = (aDataReq.mTxOptions & OT_MAC_TX_OPTION_ACK_REQ) ? true : false;
+    //------------------------------------------------------------------------
+
+    meshDest   = mMacDest;
+    meshSource = mMacSource;
+
+    // initialize MAC header and frame info
+    memset(&aDataReq, 0, sizeof(aDataReq));
+    static_cast<Mac::FullAddr *>(&aDataReq.mDst)->SetAddress(mMacDest);
+    aDataReq.mSrcAddrMode = mMacSource.GetType();
+
+    if (aMessage.IsLinkSecurityEnabled())
+    {
+        aDataReq.mSecurity.mKeyIdMode = 1;
+    }
+
+    Encoding::LittleEndian::WriteUint16(netif.GetMac().GetPanId(), aDataReq.mDst.mPanId);
+
+    assert(!isDirectSender());
+    aDataReq.mTxOptions |= OT_MAC_TX_OPTION_INDIRECT;
+
+    payload = aDataReq.mMsdu;
+
+    headerLength = 0;
+
+    payloadLength = aMessage.GetLength() - aMessage.GetOffset();
+
+    // write Fragment header
+    fragmentHeader = reinterpret_cast<Lowpan::FragmentHeader *>(payload);
+    fragmentHeader->Init();
+    fragmentHeader->SetDatagramSize(aMessage.GetLength());
+    fragmentHeader->SetDatagramTag(aMessage.GetDatagramTag());
+    fragmentHeader->SetDatagramOffset(aMessage.GetOffset());
+
+    payload += fragmentHeader->GetHeaderLength();
+    headerLength += fragmentHeader->GetHeaderLength();
+
+    fragmentLength = (GetMaxMsduSize(aDataReq) - headerLength) & ~0x7;
+
+    if (payloadLength > fragmentLength)
+    {
+        payloadLength = fragmentLength;
+    }
+
+    // copy IPv6 Payload
+    aMessage.Read(aMessage.GetOffset(), payloadLength, payload);
+    aDataReq.mMsduLength = static_cast<uint8_t>(headerLength + payloadLength);
+
+    mMessageNextOffset = aMessage.GetOffset() + payloadLength;
+
+    if (!isDirectSender() && (mMessageNextOffset != aMessage.GetLength()))
+    {
+        // We have an indirect packet which requires more than a single 15.4 frame - attempt to use overflow
+        VerifyOrExit(mParent->mOverflowSender == NULL);
+        mParent->mOverflowSender = this;
+        netif.GetMac().SendFrameRequest(mParent->mOverflowMacSender);
+    }
+
 exit:
 
     return error;
@@ -1146,7 +1237,8 @@ void MeshSender::HandleSentFrame(otError aError)
 
     otLogDebgMac(GetInstance(), "MeshSender::HandleSentFrame Called (Sender %d)", this);
 
-    mSendBusy        = false;
+    if (mSendMessage == NULL || mParent->mOverflowSender != this)
+        mSendBusy = false;
     mIdleMessageSent = false;
 
     if (child != NULL && aError == OT_ERROR_NONE)
@@ -1247,6 +1339,9 @@ void MeshSender::HandleSentFrame(otError aError)
             }
 
             childIndex = netif.GetMle().GetChildTable().GetChildIndex(*child);
+
+            if (mParent->mOverflowSender == this)
+                mParent->mOverflowSender = NULL;
 
             if (mSendMessage->GetChildMask(childIndex))
             {
@@ -1735,6 +1830,34 @@ otError MeshForwarder::HandleDatagram(Message &               aMessage,
 void MeshForwarder::HandleDataPollTimeout(Mac::Receiver &aReceiver)
 {
     aReceiver.GetOwner<MeshForwarder>().GetDataPollManager().HandlePollTimeout();
+}
+
+otError MeshForwarder::HandleOverflowFrameRequest(Mac::Sender &aSender, Mac::Frame &aFrame, otDataRequest &aDataReq)
+{
+    return static_cast<MeshForwarder *>(aSender.getMeshSender())->HandleOverflowFrameRequest(aFrame, aDataReq);
+}
+otError MeshForwarder::HandleOverflowFrameRequest(Mac::Frame &aFrame, otDataRequest &aDataReq)
+{
+    otError error = OT_ERROR_NONE;
+
+    VerifyOrExit(mOverflowSender != NULL, error = OT_ERROR_INVALID_STATE);
+    error = mOverflowSender->SendOverflowFragment(*mOverflowSender->mSendMessage, aFrame, aDataReq);
+
+exit:
+    return error;
+}
+void MeshForwarder::HandleOverflowSentFrame(Mac::Sender &aSender, otError aError)
+{
+    static_cast<MeshForwarder *>(aSender.getMeshSender())->HandleOverflowSentFrame(aError);
+}
+void MeshForwarder::HandleOverflowSentFrame(otError aError)
+{
+    if (mOverflowSender == NULL)
+        return;
+
+    mOverflowSender->HandleSentFrame(aError);
+    if (aError == OT_ERROR_NONE)
+        GetNetif().GetMac().SendFrameRequest(mOverflowMacSender);
 }
 
 #if (OPENTHREAD_CONFIG_LOG_LEVEL >= OT_LOG_LEVEL_DEBG) && (OPENTHREAD_CONFIG_LOG_MAC == 1)
