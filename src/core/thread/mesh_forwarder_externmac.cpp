@@ -1841,6 +1841,7 @@ otError MeshForwarder::HandleOverflowFrameRequest(Mac::Frame &aFrame, otDataRequ
     otError error = OT_ERROR_NONE;
 
     VerifyOrExit(mOverflowSender != NULL, error = OT_ERROR_INVALID_STATE);
+    otLogDebgMac(GetInstance(), "Sending overflow fragment sender %d...", mOverflowSender);
     error = mOverflowSender->SendOverflowFragment(*mOverflowSender->mSendMessage, aFrame, aDataReq);
 
 exit:
@@ -1854,6 +1855,8 @@ void MeshForwarder::HandleOverflowSentFrame(otError aError)
 {
     if (mOverflowSender == NULL)
         return;
+
+    otLogDebgMac(GetInstance(), "Sent overflow fragment sender %d...", mOverflowSender);
 
     mOverflowSender->HandleSentFrame(aError);
     if (aError == OT_ERROR_NONE)
