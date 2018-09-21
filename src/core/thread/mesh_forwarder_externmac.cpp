@@ -1088,8 +1088,9 @@ otError MeshSender::SendFragment(Message &aMessage, Mac::Frame &aFrame, otDataRe
     if (!isDirectSender() && (mMessageNextOffset != aMessage.GetLength()))
     {
         // We have an indirect packet which requires more than a single 15.4 frame - attempt to use overflow
-        VerifyOrExit(mParent->mOverflowSender == NULL || mParent->mOverflowSender == this);
+        VerifyOrExit(mParent->mOverflowSender == NULL);
         mParent->mOverflowSender = this;
+        netif.GetMac().SendFrameRequest(mParent->mOverflowMacSender);
     }
 
 exit:
@@ -1164,14 +1165,6 @@ otError MeshSender::SendOverflowFragment(Message &aMessage, Mac::Frame &aFrame, 
     aDataReq.mMsduLength = static_cast<uint8_t>(headerLength + payloadLength);
 
     mMessageNextOffset = aMessage.GetOffset() + payloadLength;
-
-    if (!isDirectSender() && (mMessageNextOffset != aMessage.GetLength()))
-    {
-        // We have an indirect packet which requires more than a single 15.4 frame - attempt to use overflow
-        VerifyOrExit(mParent->mOverflowSender == NULL);
-        mParent->mOverflowSender = this;
-        netif.GetMac().SendFrameRequest(mParent->mOverflowMacSender);
-    }
 
 exit:
 
