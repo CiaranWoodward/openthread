@@ -1117,6 +1117,7 @@ otError MeshSender::SendOverflowFragment(Message &aMessage, Mac::Frame &aFrame, 
     (void)aFrame;
 
     VerifyOrExit(mParent->mEnabled, error = OT_ERROR_ABORT);
+    VerifyOrExit(mMessageOffset < mSendMessage->GetLength(), error = OT_ERROR_ALREADY);
 
     mSendMessage->SetOffset(mMessageOffset);
 

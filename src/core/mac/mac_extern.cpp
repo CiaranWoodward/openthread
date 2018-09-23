@@ -1266,19 +1266,23 @@ void Mac::HandleBeginTransmit(void)
     error = otPlatMcpsDataRequest(&GetInstance(), &dataReq);
     assert(error == OT_ERROR_NONE);
 
-    // pop the sender queue
-    sender    = mSendHead;
-    mSendHead = mSendHead->mNext;
-    if (mSendHead == NULL)
+exit:
+    if (error == OT_ERROR_NONE || error == OT_ERROR_ALREADY)
     {
-        mSendTail = NULL;
+        // pop the sender queue
+        sender    = mSendHead;
+        mSendHead = mSendHead->mNext;
+        if (mSendHead == NULL)
+        {
+            mSendTail = NULL;
+        }
+
+        sender->mNext = NULL;
+        // push to the sending queue
+        sender->mNext = mSendingHead;
+        mSendingHead  = sender;
     }
 
-    sender->mNext = NULL;
-    // push to the sending queue
-    sender->mNext = mSendingHead;
-    mSendingHead  = sender;
-exit:
     return;
 }
 
