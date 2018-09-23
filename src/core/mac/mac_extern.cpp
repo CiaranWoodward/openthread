@@ -1261,6 +1261,8 @@ void Mac::HandleBeginTransmit(void)
     error   = SetTempChannel(channel, dataReq);
     assert(error == OT_ERROR_NONE);
     otLogDebgMac(GetInstance(), "calling otPlatRadioTransmit (Sender %d)", mSendHead->mMeshSender);
+    otLogDebgMac(GetInstance(), "Sam %x; Dam %x;", dataReq.mSrcAddrMode, dataReq.mDst.mAddressMode);
+    otDumpDebgMac(GetInstance(), "Msdu", dataReq.mMsdu, dataReq.mMsduLength);
     error = otPlatMcpsDataRequest(&GetInstance(), &dataReq);
     assert(error == OT_ERROR_NONE);
 

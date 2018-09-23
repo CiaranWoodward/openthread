@@ -759,6 +759,7 @@ otError MeshSender::HandleFrameRequest(Mac::Frame &aFrame, otDataRequest &aDataR
     static_cast<Mac::FullAddr *>(&aDataReq.mDst)->GetAddress(mMacDest);
     mAckRequested = (aDataReq.mTxOptions & OT_MAC_TX_OPTION_ACK_REQ) ? true : false;
 
+    mMessageOffset = mMessageNextOffset;
 exit:
     return error;
 }
@@ -1109,7 +1110,7 @@ otError MeshSender::SendOverflowFragment(Message &aMessage, Mac::Frame &aFrame, 
 
     VerifyOrExit(mParent->mEnabled, error = OT_ERROR_ABORT);
 
-    mSendMessage->SetOffset(mMessageNextOffset);
+    mSendMessage->SetOffset(mMessageOffset);
 
     //------------------------------------------------------------------------
 
@@ -1156,7 +1157,7 @@ otError MeshSender::SendOverflowFragment(Message &aMessage, Mac::Frame &aFrame, 
     aMessage.Read(aMessage.GetOffset(), payloadLength, payload);
     aDataReq.mMsduLength = static_cast<uint8_t>(headerLength + payloadLength);
 
-    mMessageNextOffset = aMessage.GetOffset() + payloadLength;
+    mMessageOffset = mMessageNextOffset = aMessage.GetOffset() + payloadLength;
 
 exit:
 
@@ -1222,7 +1223,7 @@ void MeshSender::HandleSentFrame(otError aError)
 
     otLogDebgMac(GetInstance(), "MeshSender::HandleSentFrame Called (Sender %d)", this);
 
-    if (mSendMessage == NULL && mParent->mOverflowSender != this)
+    if (mSendMessage == NULL || mParent->mOverflowSender != this)
         mSendBusy = false;
     mIdleMessageSent = false;
 
