@@ -1856,7 +1856,7 @@ void MeshForwarder::HandleOverflowSentFrame(otError aError)
     otLogDebgMac(GetInstance(), "Sent overflow fragment sender %d...", mOverflowSender);
 
     mOverflowSender->HandleSentFrame(aError);
-    if (aError == OT_ERROR_NONE)
+    if (aError == OT_ERROR_NONE && mOverflowSender != NULL)
         GetNetif().GetMac().SendFrameRequest(mOverflowMacSender);
 }
 

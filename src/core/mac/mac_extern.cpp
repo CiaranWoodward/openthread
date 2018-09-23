@@ -567,7 +567,7 @@ otError Mac::SendFrameRequest(Sender &aSender)
 {
     otError error = OT_ERROR_NONE;
     otLogDebgMac(GetInstance(), "Mac::SendFrameRequest called (Sender %d)", aSender.mMeshSender);
-    assert(mSendTail != &aSender && aSender.mNext == NULL);
+    VerifyOrExit(mSendTail != &aSender && aSender.mNext == NULL, error = OT_ERROR_ALREADY);
 
     VerifyOrExit(mEnabled, error = OT_ERROR_INVALID_STATE);
 
