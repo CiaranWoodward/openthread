@@ -1278,9 +1278,13 @@ exit:
         }
 
         sender->mNext = NULL;
-        // push to the sending queue
-        sender->mNext = mSendingHead;
-        mSendingHead  = sender;
+
+        if (error == OT_ERROR_NONE)
+        {
+            // push to the sending queue
+            sender->mNext = mSendingHead;
+            mSendingHead  = sender;
+        }
     }
 
     return;
