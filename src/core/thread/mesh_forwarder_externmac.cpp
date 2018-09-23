@@ -1098,7 +1098,6 @@ exit:
 otError MeshSender::SendOverflowFragment(Message &aMessage, Mac::Frame &aFrame, otDataRequest &aDataReq)
 {
     ThreadNetif &           netif = mParent->GetNetif();
-    Mac::Address            meshDest, meshSource;
     Lowpan::FragmentHeader *fragmentHeader;
     uint8_t *               payload;
     uint8_t                 headerLength;
@@ -1110,14 +1109,9 @@ otError MeshSender::SendOverflowFragment(Message &aMessage, Mac::Frame &aFrame, 
 
     VerifyOrExit(mParent->mEnabled, error = OT_ERROR_ABORT);
 
-    mSendBusy = true; // TODO: ???
     mSendMessage->SetOffset(mMessageNextOffset);
 
-    mAckRequested = (aDataReq.mTxOptions & OT_MAC_TX_OPTION_ACK_REQ) ? true : false;
     //------------------------------------------------------------------------
-
-    meshDest   = mMacDest;
-    meshSource = mMacSource;
 
     // initialize MAC header and frame info
     memset(&aDataReq, 0, sizeof(aDataReq));
@@ -1228,7 +1222,7 @@ void MeshSender::HandleSentFrame(otError aError)
 
     otLogDebgMac(GetInstance(), "MeshSender::HandleSentFrame Called (Sender %d)", this);
 
-    if (mSendMessage == NULL || mParent->mOverflowSender != this)
+    if (mSendMessage == NULL && mParent->mOverflowSender != this)
         mSendBusy = false;
     mIdleMessageSent = false;
 
@@ -1308,6 +1302,8 @@ void MeshSender::HandleSentFrame(otError aError)
         if (mMessageNextOffset < mSendMessage->GetLength())
         {
             mMessageOffset = mMessageNextOffset;
+            // Trigger next fragment to be built immediately
+            netif.GetMac().SendFrameRequest(mSender);
         }
         else
         {
