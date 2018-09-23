@@ -1082,7 +1082,7 @@ otError MeshSender::SendFragment(Message &aMessage, Mac::Frame &aFrame, otDataRe
         mMessageNextOffset = aMessage.GetOffset() + payloadLength;
     }
 
-    if (!isDirectSender() && (mMessageNextOffset != aMessage.GetLength()))
+    if (!isDirectSender() && (mMessageNextOffset < aMessage.GetLength()))
     {
         // We have an indirect packet which requires more than a single 15.4 frame - attempt to use overflow
         VerifyOrExit(mParent->mOverflowSender == NULL);
@@ -1111,7 +1111,7 @@ otError MeshSender::SendOverflowFragment(Message &aMessage, Mac::Frame &aFrame, 
     VerifyOrExit(mParent->mEnabled, error = OT_ERROR_ABORT);
 
     mSendBusy = true; // TODO: ???
-    mSendMessage->SetOffset(mMessageOffset);
+    mSendMessage->SetOffset(mMessageNextOffset);
 
     mAckRequested = (aDataReq.mTxOptions & OT_MAC_TX_OPTION_ACK_REQ) ? true : false;
     //------------------------------------------------------------------------
@@ -1126,7 +1126,8 @@ otError MeshSender::SendOverflowFragment(Message &aMessage, Mac::Frame &aFrame, 
 
     if (aMessage.IsLinkSecurityEnabled())
     {
-        aDataReq.mSecurity.mKeyIdMode = 1;
+        aDataReq.mSecurity.mSecurityLevel = Mac::Frame::kSecEncMic32;
+        aDataReq.mSecurity.mKeyIdMode     = 1;
     }
 
     Encoding::LittleEndian::WriteUint16(netif.GetMac().GetPanId(), aDataReq.mDst.mPanId);
