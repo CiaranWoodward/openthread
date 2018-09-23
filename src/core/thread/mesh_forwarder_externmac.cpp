@@ -1088,6 +1088,7 @@ otError MeshSender::SendFragment(Message &aMessage, Mac::Frame &aFrame, otDataRe
         // We have an indirect packet which requires more than a single 15.4 frame - attempt to use overflow
         VerifyOrExit(mParent->mOverflowSender == NULL);
         mParent->mOverflowSender = this;
+        otLogDebgMac(GetInstance(), "Claiming overflow %d for Sender %d", mParent, this);
         netif.GetMac().SendFrameRequest(mParent->mOverflowMacSender);
     }
 
