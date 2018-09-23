@@ -482,6 +482,7 @@ private:
     uint8_t  mRestoreChannel;
     uint16_t mRestorePanId;
     bool     mScanning;
+    bool     mPendingOverflow;
 
     DataPollManager       mDataPollManager;
     SourceMatchController mSourceMatchController;

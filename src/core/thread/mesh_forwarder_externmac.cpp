@@ -98,6 +98,7 @@ MeshForwarder::MeshForwarder(Instance &aInstance)
     , mRestoreChannel(0)
     , mRestorePanId(Mac::kPanIdBroadcast)
     , mScanning(false)
+    , mPendingOverflow(false)
     , mDataPollManager(aInstance)
     , mSourceMatchController(aInstance)
 {
@@ -211,7 +212,13 @@ void MeshForwarder::ScheduleTransmissionTask(void)
 
     UpdateIndirectMessages();
 
-    // Queue any pending indirects into free sender slots
+    if (mPendingOverflow)
+    {
+        mPendingOverflow = false;
+        netif.GetMac().SendFrameRequest(mOverflowMacSender);
+    }
+
+        // Queue any pending indirects into free sender slots
 #if OPENTHREAD_FTD
     for (uint8_t i = 0; i < kNumIndirectSenders; i++)
     {
@@ -1089,7 +1096,7 @@ otError MeshSender::SendFragment(Message &aMessage, Mac::Frame &aFrame, otDataRe
         VerifyOrExit(mParent->mOverflowSender == NULL);
         mParent->mOverflowSender = this;
         otLogDebgMac(GetInstance(), "Claiming overflow %d for Sender %d", mParent, this);
-        netif.GetMac().SendFrameRequest(mParent->mOverflowMacSender);
+        mParent->mPendingOverflow = true;
     }
 
 exit:
