@@ -124,7 +124,6 @@ private:
 
     Mac::Address mMacSource;
     Mac::Address mMacDest;
-    uint16_t     mFragTag;
 
     Child *mBoundChild;
 };
@@ -432,10 +431,7 @@ private:
     void        ScheduleTransmissionTask(void);
     static void HandleDataPollTimeout(Mac::Receiver &aReceiver);
 
-    static otError HandleOverflowFrameRequest(Mac::Sender &aSender, Mac::Frame &aFrame, otDataRequest &aDataReq);
-    otError        HandleOverflowFrameRequest(Mac::Frame &aFrame, otDataRequest &aDataReq);
-    static void    HandleOverflowSentFrame(Mac::Sender &aSender, otError aError);
-    void           HandleOverflowSentFrame(otError aError);
+    uint16_t GetNextFragTag(void);
 
 #if OPENTHREAD_FTD
 #if OPENTHREAD_ENABLE_SERVICE
@@ -470,8 +466,9 @@ private:
     MessageQueue mReassemblyList;
     MessageQueue mResolvingQueue;
 
-    Tasklet mScheduleTransmissionTask;
-    bool    mEnabled;
+    Tasklet  mScheduleTransmissionTask;
+    bool     mEnabled;
+    uint16_t mFragTag;
 
     // For use only with the direct sender
     uint32_t mScanChannels;

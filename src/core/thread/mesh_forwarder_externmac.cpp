@@ -75,8 +75,6 @@ MeshSender::MeshSender()
 {
     mMacSource.SetNone();
     mMacDest.SetNone();
-
-    mFragTag = static_cast<uint16_t>(otPlatRandomGet());
 }
 
 MeshForwarder::MeshForwarder(Instance &aInstance)
@@ -111,6 +109,8 @@ MeshForwarder::MeshForwarder(Instance &aInstance)
     mIpCounters.mRxSuccess = 0;
     mIpCounters.mTxFailure = 0;
     mIpCounters.mRxFailure = 0;
+
+    mFragTag = static_cast<uint16_t>(otPlatRandomGet());
 }
 
 otInstance *MeshSender::GetInstance()
@@ -875,6 +875,17 @@ size_t MeshSender::GetMaxMsduSize(otDataRequest &aDataReq)
     return (maxLen - footerLen - headerLen);
 }
 
+uint16_t MeshForwarder::GetNextFragTag(void)
+{
+    // avoid using datagram tag value 0, which indicates the tag has not been set
+    if (mFragTag == 0)
+    {
+        mFragTag++;
+    }
+
+    return mFragTag++;
+}
+
 otError MeshSender::SendFragment(Message &aMessage, Mac::Frame &aFrame, otDataRequest &aDataReq)
 {
     ThreadNetif &           netif = mParent->GetNetif();
@@ -1020,13 +1031,7 @@ otError MeshSender::SendFragment(Message &aMessage, Mac::Frame &aFrame, otDataRe
             // write Fragment header
             if (aMessage.GetDatagramTag() == 0)
             {
-                // avoid using datagram tag value 0, which indicates the tag has not been set
-                if (mFragTag == 0)
-                {
-                    mFragTag++;
-                }
-
-                aMessage.SetDatagramTag(mFragTag++);
+                aMessage.SetDatagramTag(mParent->GetNextFragTag());
             }
 
             memmove(payload + 4, payload, headerLength);
