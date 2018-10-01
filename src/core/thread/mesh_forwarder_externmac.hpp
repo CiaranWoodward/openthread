@@ -104,7 +104,6 @@ private:
 
     otError SendMesh(Message &aMessage, otDataRequest &aDataReq);
     otError SendFragment(Message &aMessage, Mac::Frame &aFrame, otDataRequest &aDataReq);
-    otError SendOverflowFragment(Message &aMessage, Mac::Frame &aFrame, otDataRequest &aDataReq);
     otError SendIdleFrame(otDataRequest &aDataReq);
     otError SendEmptyFrame(bool aAckRequest, otDataRequest &aDataReq);
 
@@ -114,7 +113,6 @@ private:
 
     Mac::Sender    mSender;
     uint16_t       mMessageNextOffset;
-    uint16_t       mMessageOffset;
     Message *      mSendMessage;
     uint16_t       mMeshSource;
     uint16_t       mMeshDest;
@@ -456,12 +454,11 @@ private:
     MeshSender mDirectSender;
 
     /*
-     * The mOverflowSender is used for indirectly sending ip frames that take up more than 1 15.4 message. If a sender
-     * needs to do this, it should 'Claim' the overflow by pointing it to itself. It can only be claimed if it is not
-     * null. After it is done using the overflow potential, it should set the pointer back to NULL. This is used to
+     * The mOverflowMacSender is used for indirectly sending ip frames that take up more than 1 15.4 message. If a
+     * sender needs to do this, it should 'Claim' the overflow by pointing it to itself. It can only be claimed if it is
+     * not null. After it is done using the overflow potential, it should set the pointer back to NULL. This is used to
      * control how much of the external MAC's resources each SED is permitted to consume.
      */
-    MeshSender *mOverflowSender;
 
 #if OPENTHREAD_CONFIG_INDIRECT_QUEUE_LENGTH != 0
     Mac::Sender mOverflowMacSender;
@@ -482,7 +479,6 @@ private:
     uint8_t  mRestoreChannel;
     uint16_t mRestorePanId;
     bool     mScanning;
-    bool     mPendingOverflow;
 
     DataPollManager       mDataPollManager;
     SourceMatchController mSourceMatchController;

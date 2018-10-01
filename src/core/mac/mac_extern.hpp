@@ -54,6 +54,7 @@
 
 namespace ot {
 
+class MeshSender;
 namespace Mle {
 class MleRouter;
 }
@@ -152,7 +153,7 @@ private:
  * This class implements a MAC sender client.
  *
  */
-class Sender : public OwnerLocator
+class Sender
 {
     friend class Mac;
 
@@ -184,12 +185,8 @@ public:
      * @param[in]  aOwner                A pointer to owner of this object.
      *
      */
-    Sender(FrameRequestHandler aFrameRequestHandler,
-           SentFrameHandler    aSentFrameHandler,
-           void *              aMeshSender,
-           void *              aOwner)
-        : OwnerLocator(aOwner)
-        , mMsduHandle(0)
+    Sender(FrameRequestHandler aFrameRequestHandler, SentFrameHandler aSentFrameHandler, MeshSender *aMeshSender)
+        : mMsduHandle(0)
         , mFrameRequestHandler(aFrameRequestHandler)
         , mSentFrameHandler(aSentFrameHandler)
         , mNext(NULL)
@@ -197,20 +194,26 @@ public:
     {
     }
 
-    void *getMeshSender(void) const { return mMeshSender; }
+    MeshSender *GetMeshSender(void) const { return mMeshSender; }
+    void        SetMeshSender(MeshSender *aMeshSender) { mMeshSender = aMeshSender; }
+    bool        IsBusy(void) { return mMsduHandle; }
 
 private:
     otError HandleFrameRequest(Frame &frame, otDataRequest &aDataReq)
     {
         return mFrameRequestHandler(*this, frame, aDataReq);
     }
-    void HandleSentFrame(otError error) { mSentFrameHandler(*this, error); }
+    void HandleSentFrame(otError error)
+    {
+        mMsduHandle = 0;
+        mSentFrameHandler(*this, error);
+    }
 
     uint8_t             mMsduHandle;
     FrameRequestHandler mFrameRequestHandler;
     SentFrameHandler    mSentFrameHandler;
     Sender *            mNext;
-    void *              mMeshSender;
+    MeshSender *        mMeshSender;
 };
 
 /**
@@ -277,7 +280,8 @@ public:
      *
      * @param[in]  aScanChannels     A bit vector indicating on which channels to perform energy scan.
      * @param[in]  aScanDuration     The time in milliseconds to spend scanning each channel.
-     * @param[in]  aHandler          A pointer to a function called to pass on scan result or indicate scan completion.
+     * @param[in]  aHandler          A pointer to a function called to pass on scan result or indicate scan
+     * completion.
      * @param[in]  aContext          A pointer to arbitrary context information.
      *
      * @retval OT_ERROR_NONE  Accepted the Energy Scan request.
@@ -612,9 +616,9 @@ public:
     /**
      * This method returns if the MAC layer is in transmit state.
      *
-     * The MAC layer is in transmit state during CSMA/CA, CCA, transmission of Data, Beacon or Data Request frames and
-     * receiving of ACK frames. The MAC layer is not in transmit state during transmission of ACK frames or Beacon
-     * Requests.
+     * The MAC layer is in transmit state during CSMA/CA, CCA, transmission of Data, Beacon or Data Request frames
+     * and receiving of ACK frames. The MAC layer is not in transmit state during transmission of ACK frames or
+     * Beacon Requests.
      *
      */
     bool IsInTransmitState(void);
@@ -622,8 +626,8 @@ public:
     /**
      * This method registers a callback to provide received raw IEEE 802.15.4 frames.
      *
-     * @param[in]  aPcapCallback     A pointer to a function that is called when receiving an IEEE 802.15.4 link frame
-     * or NULL to disable the callback.
+     * @param[in]  aPcapCallback     A pointer to a function that is called when receiving an IEEE 802.15.4 link
+     * frame or NULL to disable the callback.
      * @param[in]  aCallbackContext  A pointer to application-specific context.
      *
      */

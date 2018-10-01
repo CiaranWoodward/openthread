@@ -114,9 +114,6 @@ struct MessageInfo
     uint8_t mPriority : 2;     ///< Identifies the message priority level (lower value is higher priority).
     bool    mInPriorityQ : 1;  ///< Indicates whether the message is queued in normal or priority queue.
     bool    mTxSuccess : 1;    ///< Indicates whether the direct tx of the message was successful.
-#if OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
-    bool mSentToMac : 1; ///< Indicates whether or not the most recently generated frame has been sent to the MAC
-#endif
 #if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
     bool    mTimeSync : 1;      ///< Indicates whether the message is also used for time sync purpose.
     uint8_t mTimeSyncSeq;       ///< The time sync sequence.
@@ -615,28 +612,6 @@ public:
      *
      */
     void SetDirectTransmission(void) { mBuffer.mHead.mInfo.mDirectTx = true; }
-
-#if OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
-    /**
-     * This method returns whether or not the message has a frame being processed in the MAC layer
-     * @retval TRUE   If a frame is currently being processed by the MAC layer for this message
-     * @retval FALSE  If a frame is not currently being processed by the MAC layer for this message
-     *
-     */
-    bool GetSentToMac(void) const { return mBuffer.mHead.mInfo.mSentToMac; }
-
-    /**
-     * This method sets the indication that this message does not have any frames being processed by the MAC
-     *
-     */
-    void ClearSentToMac(void) { mBuffer.mHead.mInfo.mSentToMac = false; }
-
-    /**
-     * This method sets the indication that this message does have a frame being processed by the MAC
-     *
-     */
-    void SetSentToMac(void) { mBuffer.mHead.mInfo.mSentToMac = true; }
-#endif // OPENTHREAD_CONFIG_USE_EXTERNAL_MAC
 
     /**
      * This methods indicates whether the direct transmission of message was successful.

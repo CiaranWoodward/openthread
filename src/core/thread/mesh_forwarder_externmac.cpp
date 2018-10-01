@@ -61,9 +61,8 @@ using ot::Encoding::BigEndian::HostSwap16;
 namespace ot {
 
 MeshSender::MeshSender()
-    : mSender(&MeshSender::HandleFrameRequest, &MeshSender::HandleSentFrame, this, NULL)
+    : mSender(&MeshSender::HandleFrameRequest, &MeshSender::HandleSentFrame, this)
     , mMessageNextOffset(0)
-    , mMessageOffset(0)
     , mSendMessage(NULL)
     , mMeshSource(Mac::kShortAddrInvalid)
     , mMeshDest(Mac::kShortAddrInvalid)
@@ -86,8 +85,7 @@ MeshForwarder::MeshForwarder(Instance &aInstance)
     , mDiscoverTimer(aInstance, &MeshForwarder::HandleDiscoverTimer, this)
     , mReassemblyTimer(aInstance, &MeshForwarder::HandleReassemblyTimer, this)
     , mDirectSender()
-    , mOverflowSender(NULL)
-    , mOverflowMacSender(&MeshForwarder::HandleOverflowFrameRequest, MeshForwarder::HandleOverflowSentFrame, this, NULL)
+    , mOverflowMacSender(&MeshSender::HandleFrameRequest, MeshSender::HandleSentFrame, NULL)
 #if OPENTHREAD_CONFIG_INDIRECT_QUEUE_LENGTH == 0
     , mMeshSenders(NULL)
 #endif
@@ -98,7 +96,6 @@ MeshForwarder::MeshForwarder(Instance &aInstance)
     , mRestoreChannel(0)
     , mRestorePanId(Mac::kPanIdBroadcast)
     , mScanning(false)
-    , mPendingOverflow(false)
     , mDataPollManager(aInstance)
     , mSourceMatchController(aInstance)
 {
@@ -212,13 +209,7 @@ void MeshForwarder::ScheduleTransmissionTask(void)
 
     UpdateIndirectMessages();
 
-    if (mPendingOverflow)
-    {
-        mPendingOverflow = false;
-        netif.GetMac().SendFrameRequest(mOverflowMacSender);
-    }
-
-        // Queue any pending indirects into free sender slots
+    // Queue any pending indirects into free sender slots
 #if OPENTHREAD_FTD
     for (uint8_t i = 0; i < kNumIndirectSenders; i++)
     {
@@ -234,8 +225,8 @@ void MeshForwarder::ScheduleTransmissionTask(void)
     {
         if (mDirectSender.mSendMessage == NULL)
         {
-            mDirectSender.mSendMessage   = GetDirectTransmission(mDirectSender);
-            mDirectSender.mMessageOffset = 0;
+            mDirectSender.mSendMessage       = GetDirectTransmission(mDirectSender);
+            mDirectSender.mMessageNextOffset = 0;
             VerifyOrExit(mDirectSender.mSendMessage != NULL);
         }
         netif.GetMac().SendFrameRequest(mDirectSender.mSender);
@@ -243,7 +234,6 @@ void MeshForwarder::ScheduleTransmissionTask(void)
             ExitNow(); // Data polls are sent instantly
 
         mDirectSender.mSendBusy = true;
-        mDirectSender.mSendMessage->SetSentToMac();
     }
 
 exit:
@@ -262,8 +252,8 @@ otError MeshSender::ScheduleIndirectTransmission()
 
     if (mSendMessage == NULL)
     {
-        Message *found = mParent->GetIndirectTransmission(*mBoundChild);
-        mMessageOffset = 0;
+        Message *found     = mParent->GetIndirectTransmission(*mBoundChild);
+        mMessageNextOffset = 0;
         if (found && mIdleMessageSent)
         {
             // Purge the idle message
@@ -329,7 +319,7 @@ Message *MeshForwarder::GetDirectTransmission(MeshSender &aSender)
     {
         nextMessage = curMessage->GetNext();
 
-        if (curMessage->GetDirectTransmission() == false || curMessage->GetSentToMac())
+        if (curMessage->GetDirectTransmission() == false)
         {
             continue;
         }
@@ -678,7 +668,7 @@ otError MeshForwarder::GetMacDestinationAddress(const Ip6::Address &aIp6Addr, Ma
 
 otError MeshSender::HandleFrameRequest(Mac::Sender &aSender, Mac::Frame &aFrame, otDataRequest &aDataReq)
 {
-    return static_cast<MeshSender *>(aSender.getMeshSender())->HandleFrameRequest(aFrame, aDataReq);
+    return static_cast<MeshSender *>(aSender.GetMeshSender())->HandleFrameRequest(aFrame, aDataReq);
 }
 
 otError MeshSender::HandleFrameRequest(Mac::Frame &aFrame, otDataRequest &aDataReq)
@@ -707,7 +697,7 @@ otError MeshSender::HandleFrameRequest(Mac::Frame &aFrame, otDataRequest &aDataR
 
     mSendBusy = true;
 
-    mSendMessage->SetOffset(mMessageOffset);
+    mSendMessage->SetOffset(mMessageNextOffset);
     if (child != NULL && !child->IsRxOnWhenIdle())
     {
         child->GetMacAddress(mMacDest);
@@ -766,7 +756,7 @@ otError MeshSender::HandleFrameRequest(Mac::Frame &aFrame, otDataRequest &aDataR
     static_cast<Mac::FullAddr *>(&aDataReq.mDst)->GetAddress(mMacDest);
     mAckRequested = (aDataReq.mTxOptions & OT_MAC_TX_OPTION_ACK_REQ) ? true : false;
 
-    mMessageOffset = mMessageNextOffset;
+    // Todo: Setup offset
 exit:
     return error;
 }
@@ -1060,7 +1050,6 @@ otError MeshSender::SendFragment(Message &aMessage, Mac::Frame &aFrame, otDataRe
         aDataReq.mMsduLength = static_cast<uint8_t>(headerLength + payloadLength);
 
         mMessageNextOffset = aMessage.GetOffset() + payloadLength;
-        aMessage.SetOffset(0);
     }
     else
     {
@@ -1093,80 +1082,10 @@ otError MeshSender::SendFragment(Message &aMessage, Mac::Frame &aFrame, otDataRe
     if (!isDirectSender() && (mMessageNextOffset < aMessage.GetLength()))
     {
         // We have an indirect packet which requires more than a single 15.4 frame - attempt to use overflow
-        VerifyOrExit(mParent->mOverflowSender == NULL);
-        mParent->mOverflowSender = this;
+        VerifyOrExit(mParent->mOverflowMacSender.GetMeshSender() == NULL);
+        mParent->mOverflowMacSender.SetMeshSender(this);
         otLogDebgMac(GetInstance(), "Claiming overflow %d for Sender %d", mParent, this);
-        mParent->mPendingOverflow = true;
     }
-
-exit:
-
-    return error;
-}
-
-otError MeshSender::SendOverflowFragment(Message &aMessage, Mac::Frame &aFrame, otDataRequest &aDataReq)
-{
-    ThreadNetif &           netif = mParent->GetNetif();
-    Lowpan::FragmentHeader *fragmentHeader;
-    uint8_t *               payload;
-    uint8_t                 headerLength;
-    uint16_t                payloadLength;
-    uint16_t                fragmentLength;
-    otError                 error = OT_ERROR_NONE;
-
-    (void)aFrame;
-
-    VerifyOrExit(mParent->mEnabled, error = OT_ERROR_ABORT);
-    VerifyOrExit(mMessageOffset < mSendMessage->GetLength(), error = OT_ERROR_ALREADY);
-
-    mSendMessage->SetOffset(mMessageOffset);
-
-    //------------------------------------------------------------------------
-
-    // initialize MAC header and frame info
-    memset(&aDataReq, 0, sizeof(aDataReq));
-    static_cast<Mac::FullAddr *>(&aDataReq.mDst)->SetAddress(mMacDest);
-    aDataReq.mSrcAddrMode = mMacSource.GetType();
-
-    if (aMessage.IsLinkSecurityEnabled())
-    {
-        aDataReq.mSecurity.mSecurityLevel = Mac::Frame::kSecEncMic32;
-        aDataReq.mSecurity.mKeyIdMode     = 1;
-    }
-
-    Encoding::LittleEndian::WriteUint16(netif.GetMac().GetPanId(), aDataReq.mDst.mPanId);
-
-    assert(!isDirectSender());
-    aDataReq.mTxOptions |= OT_MAC_TX_OPTION_INDIRECT;
-
-    payload = aDataReq.mMsdu;
-
-    headerLength = 0;
-
-    payloadLength = aMessage.GetLength() - aMessage.GetOffset();
-
-    // write Fragment header
-    fragmentHeader = reinterpret_cast<Lowpan::FragmentHeader *>(payload);
-    fragmentHeader->Init();
-    fragmentHeader->SetDatagramSize(aMessage.GetLength());
-    fragmentHeader->SetDatagramTag(aMessage.GetDatagramTag());
-    fragmentHeader->SetDatagramOffset(aMessage.GetOffset());
-
-    payload += fragmentHeader->GetHeaderLength();
-    headerLength += fragmentHeader->GetHeaderLength();
-
-    fragmentLength = (GetMaxMsduSize(aDataReq) - headerLength) & ~0x7;
-
-    if (payloadLength > fragmentLength)
-    {
-        payloadLength = fragmentLength;
-    }
-
-    // copy IPv6 Payload
-    aMessage.Read(aMessage.GetOffset(), payloadLength, payload);
-    aDataReq.mMsduLength = static_cast<uint8_t>(headerLength + payloadLength);
-
-    mMessageOffset = mMessageNextOffset = aMessage.GetOffset() + payloadLength;
 
 exit:
 
@@ -1219,7 +1138,7 @@ otError MeshSender::SendEmptyFrame(bool aAckRequest, otDataRequest &aDataReq)
 
 void MeshSender::HandleSentFrame(Mac::Sender &aSender, otError aError)
 {
-    static_cast<MeshSender *>(aSender.getMeshSender())->HandleSentFrame(aError);
+    static_cast<MeshSender *>(aSender.GetMeshSender())->HandleSentFrame(aError);
 }
 
 void MeshSender::HandleSentFrame(otError aError)
@@ -1232,7 +1151,7 @@ void MeshSender::HandleSentFrame(otError aError)
 
     otLogDebgMac(GetInstance(), "MeshSender::HandleSentFrame Called (Sender %d)", this);
 
-    if (mSendMessage == NULL || mParent->mOverflowSender != this)
+    if (mSendMessage == NULL || mParent->mOverflowMacSender.GetMeshSender() != this)
         mSendBusy = false;
     mIdleMessageSent = false;
 
@@ -1243,11 +1162,6 @@ void MeshSender::HandleSentFrame(otError aError)
 
     VerifyOrExit(mSendMessage != NULL);
     VerifyOrExit(mParent->mEnabled);
-
-    mSendMessage->SetOffset(mMessageNextOffset);
-    mMessageOffset = mMessageNextOffset;
-    if (isDirectSender())
-        mSendMessage->ClearSentToMac();
 
     if ((neighbor = netif.GetMle().GetNeighbor(mMacDest)) != NULL)
     {
@@ -1309,16 +1223,9 @@ void MeshSender::HandleSentFrame(otError aError)
             }
         }
 
-        if (mMessageNextOffset < mSendMessage->GetLength())
+        if (mMessageNextOffset >= mSendMessage->GetLength())
         {
-            mMessageOffset = mMessageNextOffset;
-            // Trigger next fragment to be built immediately
-            netif.GetMac().SendFrameRequest(mSender);
-        }
-        else
-        {
-            sendFinished   = true;
-            mMessageOffset = 0;
+            sendFinished = true;
             if (mSendMessage == child->GetIndirectMessage())
             {
                 child->SetIndirectMessage(NULL);
@@ -1337,8 +1244,8 @@ void MeshSender::HandleSentFrame(otError aError)
 
             childIndex = netif.GetMle().GetChildTable().GetChildIndex(*child);
 
-            if (mParent->mOverflowSender == this)
-                mParent->mOverflowSender = NULL;
+            if (mParent->mOverflowMacSender.GetMeshSender() == this)
+                mParent->mOverflowMacSender.SetMeshSender(NULL);
 
             if (mSendMessage->GetChildMask(childIndex))
             {
@@ -1369,17 +1276,11 @@ void MeshSender::HandleSentFrame(otError aError)
 
 #endif
 
-        if (mMessageNextOffset < mSendMessage->GetLength())
-        {
-            mSendMessage->SetOffset(mMessageNextOffset);
-            mMessageOffset = mMessageNextOffset;
-        }
-        else
+        if (mMessageNextOffset >= mSendMessage->GetLength())
         {
             sendFinished = true;
             mSendMessage->ClearDirectTransmission();
             mSendMessage->SetOffset(0);
-            mMessageOffset = 0;
         }
 
         if (mSendMessage->GetSubType() == Message::kSubTypeMleDiscoverRequest)
@@ -1414,7 +1315,6 @@ void MeshSender::HandleSentFrame(otError aError)
 
     if (sendFinished)
     {
-        mMessageOffset     = 0;
         mMessageNextOffset = 0;
         mSendMessage       = NULL;
     }
@@ -1827,37 +1727,6 @@ otError MeshForwarder::HandleDatagram(Message &               aMessage,
 void MeshForwarder::HandleDataPollTimeout(Mac::Receiver &aReceiver)
 {
     aReceiver.GetOwner<MeshForwarder>().GetDataPollManager().HandlePollTimeout();
-}
-
-otError MeshForwarder::HandleOverflowFrameRequest(Mac::Sender &aSender, Mac::Frame &aFrame, otDataRequest &aDataReq)
-{
-    return static_cast<MeshForwarder *>(aSender.getMeshSender())->HandleOverflowFrameRequest(aFrame, aDataReq);
-}
-otError MeshForwarder::HandleOverflowFrameRequest(Mac::Frame &aFrame, otDataRequest &aDataReq)
-{
-    otError error = OT_ERROR_NONE;
-
-    VerifyOrExit(mOverflowSender != NULL, error = OT_ERROR_INVALID_STATE);
-    otLogDebgMac(GetInstance(), "Sending overflow fragment sender %d...", mOverflowSender);
-    error = mOverflowSender->SendOverflowFragment(*mOverflowSender->mSendMessage, aFrame, aDataReq);
-
-exit:
-    return error;
-}
-void MeshForwarder::HandleOverflowSentFrame(Mac::Sender &aSender, otError aError)
-{
-    static_cast<MeshForwarder *>(aSender.getMeshSender())->HandleOverflowSentFrame(aError);
-}
-void MeshForwarder::HandleOverflowSentFrame(otError aError)
-{
-    if (mOverflowSender == NULL)
-        return;
-
-    otLogDebgMac(GetInstance(), "Sent overflow fragment sender %d...", mOverflowSender);
-
-    mOverflowSender->HandleSentFrame(aError);
-    if (aError == OT_ERROR_NONE && mOverflowSender != NULL)
-        GetNetif().GetMac().SendFrameRequest(mOverflowMacSender);
 }
 
 #if (OPENTHREAD_CONFIG_LOG_LEVEL >= OT_LOG_LEVEL_DEBG) && (OPENTHREAD_CONFIG_LOG_MAC == 1)
