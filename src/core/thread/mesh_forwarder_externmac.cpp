@@ -67,7 +67,6 @@ MeshSender::MeshSender()
     , mMeshSource(Mac::kShortAddrInvalid)
     , mMeshDest(Mac::kShortAddrInvalid)
     , mAddMeshHeader(false)
-    , mSendBusy(false)
     , mParent(NULL)
     , mAckRequested(false)
     , mIdleMessageSent(false)
@@ -203,8 +202,6 @@ void MeshForwarder::ScheduleTransmissionTask(Tasklet &aTasklet)
 
 void MeshForwarder::ScheduleTransmissionTask(void)
 {
-    ThreadNetif &netif = GetNetif();
-
     otLogDebgMac(GetInstance(), "MeshForwarder::ScheduleTransmissionTask called");
 
     UpdateIndirectMessages();
@@ -213,40 +210,24 @@ void MeshForwarder::ScheduleTransmissionTask(void)
 #if OPENTHREAD_FTD
     for (uint8_t i = 0; i < kNumIndirectSenders; i++)
     {
-        if (!mMeshSenders[i].mSendBusy)
-        {
-            mMeshSenders[i].ScheduleIndirectTransmission();
-        }
+        mMeshSenders[i].ScheduleIndirectTransmission();
     }
 #endif
 
     // Handle the direct sending using the direct sender
-    if (!mDirectSender.mSendBusy)
-    {
-        if (mDirectSender.mSendMessage == NULL)
-        {
-            mDirectSender.mSendMessage       = GetDirectTransmission(mDirectSender);
-            mDirectSender.mMessageNextOffset = 0;
-            VerifyOrExit(mDirectSender.mSendMessage != NULL);
-        }
-        netif.GetMac().SendFrameRequest(mDirectSender.mSender);
-        if (mDirectSender.mSendMessage == NULL)
-            ExitNow(); // Data polls are sent instantly
-
-        mDirectSender.mSendBusy = true;
-    }
-
-exit:
-    return;
+    mDirectSender.ScheduleDirectTransmission();
 }
 
 otError MeshSender::ScheduleIndirectTransmission()
 {
     otError error = OT_ERROR_NONE;
 
+    // TODO: Busy exception for NULL mSendMessage (idle frame)
+
     VerifyOrExit(MeshForwarder::kNumIndirectSenders > 0, error = OT_ERROR_NOT_CAPABLE);
     VerifyOrExit(mBoundChild != NULL, error = OT_ERROR_NOT_FOUND);
     VerifyOrExit(mBoundChild->IsStateValidOrRestoring(), error = OT_ERROR_NOT_FOUND);
+    VerifyOrExit(mIdleMessageSent || !mSender.IsInUse(), error = OT_ERROR_BUSY);
 
     mSendMessage = mBoundChild->GetIndirectMessage();
 
@@ -271,10 +252,25 @@ otError MeshSender::ScheduleIndirectTransmission()
 
     SuccessOrExit(error = mParent->GetNetif().GetMac().SendFrameRequest(mSender));
 
-    if (mSendMessage != NULL)
+exit:
+    return error;
+}
+
+otError MeshSender::ScheduleDirectTransmission()
+{
+    otError error = OT_ERROR_NONE;
+
+    VerifyOrExit(!mSender.IsInUse() && !mParent->mDiscoverTimer.IsRunning(), error = OT_ERROR_BUSY);
+
+    if (mSendMessage == NULL)
     {
-        mSendBusy = true;
+        mSendMessage       = mParent->GetDirectTransmission(*this);
+        mMessageNextOffset = 0;
+        VerifyOrExit(mSendMessage != NULL);
     }
+    mParent->GetNetif().GetMac().SendFrameRequest(mSender);
+    if (mSendMessage == NULL)
+        ExitNow(); // Data polls are sent instantly
 
 exit:
     return error;
@@ -688,8 +684,6 @@ otError MeshSender::HandleFrameRequest(Mac::Sender &aSender, Mac::Frame &aFrame,
             ExitNow(error = OT_ERROR_ABORT);
         }
     }
-
-    mSendBusy = true;
 
     mSendMessage->SetOffset(mMessageNextOffset);
     if (child != NULL && !child->IsRxOnWhenIdle())
@@ -1152,8 +1146,6 @@ void MeshSender::HandleSentFrame(Mac::Sender &aSender, otError aError)
 
     otLogDebgMac(GetInstance(), "MeshSender::HandleSentFrame Called (Sender %d)", this);
 
-    if (mSendMessage == NULL || mParent->mOverflowMacSender.GetMeshSender() != this)
-        mSendBusy = false;
     mIdleMessageSent = false;
 
     if (child != NULL && aError == OT_ERROR_NONE)
@@ -1286,7 +1278,6 @@ void MeshSender::HandleSentFrame(Mac::Sender &aSender, otError aError)
 
         if (mSendMessage->GetSubType() == Message::kSubTypeMleDiscoverRequest)
         {
-            mSendBusy = true;
             mParent->mDiscoverTimer.Start(static_cast<uint16_t>(Mac::kScanDurationDefault));
             ExitNow();
         }
@@ -1363,7 +1354,6 @@ void MeshForwarder::HandleDiscoverTimer(void)
     (mDirectSender.mSendMessage)->SetDirectTransmission();
 
 exit:
-    (mDirectSender.mSendBusy) = false;
     mScheduleTransmissionTask.Post();
 }
 

@@ -101,6 +101,7 @@ private:
      */
     void    PrepareIndirectTransmission(const Child &aChild);
     otError ScheduleIndirectTransmission();
+    otError ScheduleDirectTransmission();
 
     otError SendMesh(Message &aMessage, otDataRequest &aDataReq);
     otError SendFragment(Message &aMessage, Mac::Frame &aFrame, otDataRequest &aDataReq);
@@ -117,7 +118,6 @@ private:
     uint16_t       mMeshSource;
     uint16_t       mMeshDest;
     bool           mAddMeshHeader;
-    bool           mSendBusy;
     MeshForwarder *mParent;
     bool           mAckRequested;
     bool           mIdleMessageSent;

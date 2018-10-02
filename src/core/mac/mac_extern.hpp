@@ -199,7 +199,7 @@ public:
     void        SetMeshSender(MeshSender *aMeshSender) { mMeshSender = aMeshSender; }
     void        SetMessageEndOffset(uint16_t aMessageOffset) { mMessageOffset = aMessageOffset; }
     uint16_t    GetMessageEndOffset(void) { return mMessageOffset; }
-    bool        IsBusy(void) { return mMsduHandle; }
+    bool        IsInUse(void) { return mMsduHandle; }
 
 private:
     otError HandleFrameRequest(Frame &frame, otDataRequest &aDataReq)

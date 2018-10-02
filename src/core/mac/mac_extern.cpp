@@ -571,6 +571,9 @@ otError Mac::SendFrameRequest(Sender &aSender)
 
     VerifyOrExit(mEnabled, error = OT_ERROR_INVALID_STATE);
 
+    // Give dummy nonzero msdu handle to prevent doublesend
+    aSender.mMsduHandle = 1;
+
     if (mSendHead == NULL)
     {
         mSendHead = &aSender;
