@@ -333,17 +333,11 @@ Message *MeshForwarder::GetDirectTransmission(MeshSender &aSender)
             {
                 error = PrepareDiscoverRequest();
             }
-
             break;
 
         case Message::kType6lowpan:
             error = UpdateMeshRoute(*curMessage, aSender);
             break;
-
-        case Message::kTypeMacDataPoll:
-        {
-            break;
-        }
 
         case Message::kTypeSupervision:
             error = OT_ERROR_DROP;

@@ -621,11 +621,9 @@ void Mac::StartOperation(Operation aOperation)
 
     if (!mEnabled)
     {
-        mPendingWaitingForData = false;
-        mPendingActiveScan     = false;
-        mPendingEnergyScan     = false;
-        mPendingTransmitBeacon = false;
-        mPendingTransmitData   = false;
+        mPendingActiveScan   = false;
+        mPendingEnergyScan   = false;
+        mPendingTransmitData = false;
         ExitNow();
     }
 

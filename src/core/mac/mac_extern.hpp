@@ -831,9 +831,7 @@ private:
 
     bool mPendingActiveScan : 1;
     bool mPendingEnergyScan : 1;
-    bool mPendingTransmitBeacon : 1;
     bool mPendingTransmitData : 1;
-    bool mPendingWaitingForData : 1;
     bool mRxOnWhenIdle : 1;
     bool mBeaconsEnabled : 1;
     bool mEnabled : 1;
