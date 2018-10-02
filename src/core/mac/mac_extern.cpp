@@ -1685,6 +1685,9 @@ uint8_t Mac::GetValidMsduHandle(void)
 {
     Sender *sender = mSendingHead;
 
+    if (mNextMsduHandle == 0)
+        mNextMsduHandle++;
+
     while (sender != NULL)
     {
         if (sender->mMsduHandle == mNextMsduHandle || mNextMsduHandle == 0)

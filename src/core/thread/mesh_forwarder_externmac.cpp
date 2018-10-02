@@ -222,8 +222,6 @@ otError MeshSender::ScheduleIndirectTransmission()
 {
     otError error = OT_ERROR_NONE;
 
-    // TODO: Busy exception for NULL mSendMessage (idle frame)
-
     VerifyOrExit(MeshForwarder::kNumIndirectSenders > 0, error = OT_ERROR_NOT_CAPABLE);
     VerifyOrExit(mBoundChild != NULL, error = OT_ERROR_NOT_FOUND);
     VerifyOrExit(mBoundChild->IsStateValidOrRestoring(), error = OT_ERROR_NOT_FOUND);
