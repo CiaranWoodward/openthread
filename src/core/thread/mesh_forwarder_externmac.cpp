@@ -692,7 +692,6 @@ otError MeshSender::HandleFrameRequest(Mac::Sender &aSender, Mac::Frame &aFrame,
     mSendBusy = true;
 
     mSendMessage->SetOffset(mMessageNextOffset);
-    aSender.SetMessageOffset(mMessageNextOffset);
     if (child != NULL && !child->IsRxOnWhenIdle())
     {
         child->GetMacAddress(mMacDest);
@@ -752,6 +751,7 @@ otError MeshSender::HandleFrameRequest(Mac::Sender &aSender, Mac::Frame &aFrame,
     mAckRequested = (aDataReq.mTxOptions & OT_MAC_TX_OPTION_ACK_REQ) ? true : false;
 
     // Todo: Setup offset
+    aSender.SetMessageEndOffset(mMessageNextOffset);
 exit:
     return error;
 }
@@ -1147,7 +1147,7 @@ void MeshSender::HandleSentFrame(Mac::Sender &aSender, otError aError)
     Child *      child = mBoundChild;
     Neighbor *   neighbor;
     uint8_t      childIndex;
-    uint16_t     sentOffset   = aSender.GetMessageOffset();
+    uint16_t     sentOffset   = aSender.GetMessageEndOffset();
     bool         sendFinished = false;
 
     otLogDebgMac(GetInstance(), "MeshSender::HandleSentFrame Called (Sender %d)", this);

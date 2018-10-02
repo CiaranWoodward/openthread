@@ -197,8 +197,8 @@ public:
 
     MeshSender *GetMeshSender(void) const { return mMeshSender; }
     void        SetMeshSender(MeshSender *aMeshSender) { mMeshSender = aMeshSender; }
-    void        SetMessageOffset(uint16_t aMessageOffset) { mMessageOffset = aMessageOffset; }
-    uint16_t    GetMessageOffset(void) { return mMessageOffset; }
+    void        SetMessageEndOffset(uint16_t aMessageOffset) { mMessageOffset = aMessageOffset; }
+    uint16_t    GetMessageEndOffset(void) { return mMessageOffset; }
     bool        IsBusy(void) { return mMsduHandle; }
 
 private:
