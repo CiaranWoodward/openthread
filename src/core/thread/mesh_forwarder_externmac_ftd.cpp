@@ -212,7 +212,6 @@ void MeshForwarder::ClearChildIndirectMessages(Child &aChild)
     }
 
     VerifyOrExit(aChild.GetIndirectMessageCount() > 0);
-    aChild.SetIndirectMessage(NULL);
 
     for (Message *message = mSendQueue.GetHead(); message; message = nextMessage)
     {
@@ -274,11 +273,6 @@ otError MeshForwarder::RemoveMessageFromSleepyChild(Message &aMessage, Child &aC
 
     aMessage.ClearChildMask(childIndex);
     mSourceMatchController.DecrementMessageCount(aChild);
-
-    if (aChild.GetIndirectMessage() == &aMessage)
-    {
-        aChild.SetIndirectMessage(NULL);
-    }
 
     for (int i = 0; i < kNumIndirectSenders; i++)
     {
@@ -393,7 +387,6 @@ Message *MeshForwarder::GetIndirectTransmission(Child &aChild)
         }
     }
 
-    aChild.SetIndirectMessage(message);
     aChild.ResetIndirectTxAttempts();
 
     if (message != NULL)

@@ -227,8 +227,6 @@ otError MeshSender::ScheduleIndirectTransmission()
     VerifyOrExit(mBoundChild->IsStateValidOrRestoring(), error = OT_ERROR_NOT_FOUND);
     VerifyOrExit(mIdleMessageSent || !mSender.IsInUse(), error = OT_ERROR_BUSY);
 
-    mSendMessage = mBoundChild->GetIndirectMessage();
-
     if (mSendMessage == NULL)
     {
         Message *found     = mParent->GetIndirectTransmission(*mBoundChild);
@@ -1196,42 +1194,35 @@ void MeshSender::HandleSentFrame(Mac::Sender &aSender, otError aError)
 
         VerifyOrExit(mSendMessage != NULL);
 
-        if (mSendMessage == child->GetIndirectMessage())
+        if (aError == OT_ERROR_NONE)
         {
-            if (aError == OT_ERROR_NONE)
-            {
-                child->ResetIndirectTxAttempts();
-            }
-            else
-            {
+            child->ResetIndirectTxAttempts();
+        }
+        else
+        {
 #if OPENTHREAD_CONFIG_DROP_MESSAGE_ON_FRAGMENT_TX_FAILURE
-                // We set the NextOffset to end of message, since there is no need to
-                // send any remaining fragments in the message to the child, if all tx
-                // attempts of current frame already failed.
+            // We set the NextOffset to end of message, since there is no need to
+            // send any remaining fragments in the message to the child, if all tx
+            // attempts of current frame already failed.
 
-                mMessageNextOffset = mSendMessage->GetLength();
+            mMessageNextOffset = mSendMessage->GetLength();
 #endif
-            }
         }
 
         if (sentOffset >= mSendMessage->GetLength())
         {
             sendFinished = true;
-            if (mSendMessage == child->GetIndirectMessage())
-            {
-                child->SetIndirectMessage(NULL);
 
-                // Enable short source address matching after the first indirect
-                // message transmission attempt to the child. We intentionally do
-                // not check for successful tx here to address the scenario where
-                // the child does receive "Child ID Response" but parent misses the
-                // 15.4 ack from child. If the "Child ID Response" does not make it
-                // to the child, then the child will need to send a new "Child ID
-                // Request" which will cause the parent to switch to using long
-                // address mode for source address matching.
+            // Enable short source address matching after the first indirect
+            // message transmission attempt to the child. We intentionally do
+            // not check for successful tx here to address the scenario where
+            // the child does receive "Child ID Response" but parent misses the
+            // 15.4 ack from child. If the "Child ID Response" does not make it
+            // to the child, then the child will need to send a new "Child ID
+            // Request" which will cause the parent to switch to using long
+            // address mode for source address matching.
 
-                mParent->mSourceMatchController.SetSrcMatchAsShort(*child, true);
-            }
+            mParent->mSourceMatchController.SetSrcMatchAsShort(*child, true);
 
             childIndex = netif.GetMle().GetChildTable().GetChildIndex(*child);
 
