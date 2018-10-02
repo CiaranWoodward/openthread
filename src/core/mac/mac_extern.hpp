@@ -187,6 +187,7 @@ public:
      */
     Sender(FrameRequestHandler aFrameRequestHandler, SentFrameHandler aSentFrameHandler, MeshSender *aMeshSender)
         : mMsduHandle(0)
+        , mMessageOffset(0)
         , mFrameRequestHandler(aFrameRequestHandler)
         , mSentFrameHandler(aSentFrameHandler)
         , mNext(NULL)
@@ -196,6 +197,8 @@ public:
 
     MeshSender *GetMeshSender(void) const { return mMeshSender; }
     void        SetMeshSender(MeshSender *aMeshSender) { mMeshSender = aMeshSender; }
+    void        SetMessageOffset(uint16_t aMessageOffset) { mMessageOffset = aMessageOffset; }
+    uint16_t    GetMessageOffset(void) { return mMessageOffset; }
     bool        IsBusy(void) { return mMsduHandle; }
 
 private:
@@ -210,6 +213,7 @@ private:
     }
 
     uint8_t             mMsduHandle;
+    uint16_t            mMessageOffset;
     FrameRequestHandler mFrameRequestHandler;
     SentFrameHandler    mSentFrameHandler;
     Sender *            mNext;

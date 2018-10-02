@@ -84,8 +84,8 @@ private:
      * which will handle the sending. This method fills the frame with data
      * before returning.
      */
-    static otError HandleFrameRequest(Mac::Sender &aSender, Mac::Frame &aFrame, otDataRequest &aDataReq);
-    otError        HandleFrameRequest(Mac::Frame &aFrame, otDataRequest &aDataReq);
+    static otError DispatchFrameRequest(Mac::Sender &aSender, Mac::Frame &aFrame, otDataRequest &aDataReq);
+    otError        HandleFrameRequest(Mac::Sender &aSender, Mac::Frame &aFrame, otDataRequest &aDataReq);
 
     /*
      * These methods handle the Mac layer completing the sending of a frame.
@@ -93,8 +93,8 @@ private:
      * handled the frame request. This allows the sender to prepare the next
      * frame for transmission.
      */
-    static void HandleSentFrame(Mac::Sender &aSender, otError aError);
-    void        HandleSentFrame(otError aError);
+    static void DispatchSentFrame(Mac::Sender &aSender, otError aError);
+    void        HandleSentFrame(Mac::Sender &aSender, otError aError);
 
     /*
      * These are internal functions to handle the construction of certain mac frames.
