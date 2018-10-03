@@ -229,14 +229,14 @@ otError MeshSender::ScheduleIndirectTransmission()
 
     if (mSendMessage == NULL)
     {
-        Message *found     = mParent->GetIndirectTransmission(*mBoundChild);
-        mMessageNextOffset = 0;
+        Message *found = mParent->GetIndirectTransmission(*mBoundChild);
         if (found && mIdleMessageSent)
         {
             // Purge the idle message
-            mParent->GetNetif().GetMac().PurgeFrameRequest(mSender);
+            VerifyOrExit(mParent->GetNetif().GetMac().PurgeFrameRequest(mSender) == OT_ERROR_NONE);
         }
-        mSendMessage = found;
+        mMessageNextOffset = 0;
+        mSendMessage       = found;
     }
 
     mBoundChild->GetMacAddress(mMacDest);

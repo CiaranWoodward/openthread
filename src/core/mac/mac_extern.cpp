@@ -603,8 +603,9 @@ otError Mac::PurgeFrameRequest(Sender &aSender)
     VerifyOrExit(sender != NULL, error = OT_ERROR_ALREADY);
 
     sender->HandleSentFrame(OT_ERROR_ABORT);
-    otLogInfoMac(GetInstance(), "Purged frame from MAC");
+
 exit:
+    otLogInfoMac(GetInstance(), "Purged frame from MAC (Error %x)", error);
     return error;
 }
 
@@ -1262,7 +1263,8 @@ void Mac::HandleBeginTransmit(void)
     error   = SetTempChannel(channel, dataReq);
     assert(error == OT_ERROR_NONE);
     otLogDebgMac(GetInstance(), "calling otPlatRadioTransmit (Sender %d)", mSendHead->mMeshSender);
-    otLogDebgMac(GetInstance(), "Sam %x; Dam %x;", dataReq.mSrcAddrMode, dataReq.mDst.mAddressMode);
+    otLogDebgMac(GetInstance(), "Sam %x; Dam %x; MH %x;", dataReq.mSrcAddrMode, dataReq.mDst.mAddressMode,
+                 dataReq.mMsduHandle);
     otDumpDebgMac(GetInstance(), "Msdu", dataReq.mMsdu, dataReq.mMsduLength);
     error = otPlatMcpsDataRequest(&GetInstance(), &dataReq);
     assert(error == OT_ERROR_NONE);
