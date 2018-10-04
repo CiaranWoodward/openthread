@@ -225,28 +225,36 @@ otError MeshSender::ScheduleIndirectTransmission()
     VerifyOrExit(MeshForwarder::kNumIndirectSenders > 0, error = OT_ERROR_NOT_CAPABLE);
     VerifyOrExit(mBoundChild != NULL, error = OT_ERROR_NOT_FOUND);
     VerifyOrExit(mBoundChild->IsStateValidOrRestoring(), error = OT_ERROR_NOT_FOUND);
-    VerifyOrExit(mIdleMessageSent || !mSender.IsInUse(), error = OT_ERROR_BUSY);
 
-    if (mSendMessage == NULL)
+    if (mIdleMessageSent || !mSender.IsInUse())
     {
-        Message *found = mParent->GetIndirectTransmission(*mBoundChild);
-        if (found && mIdleMessageSent)
+        if (mSendMessage == NULL)
         {
-            // Purge the idle message
-            VerifyOrExit(mParent->GetNetif().GetMac().PurgeFrameRequest(mSender) == OT_ERROR_NONE);
+            Message *found = mParent->GetIndirectTransmission(*mBoundChild);
+
+            if (found && mIdleMessageSent)
+            {
+                // Purge the idle message
+                VerifyOrExit(mParent->GetNetif().GetMac().PurgeFrameRequest(mSender) == OT_ERROR_NONE);
+            }
+            mMessageNextOffset = 0;
+            mSendMessage       = found;
         }
-        mMessageNextOffset = 0;
-        mSendMessage       = found;
+
+        mBoundChild->GetMacAddress(mMacDest);
+
+        if (mSendMessage == NULL && mIdleMessageSent)
+        {
+            ExitNow(error = OT_ERROR_NOT_FOUND);
+        }
+
+        SuccessOrExit(error = mParent->GetNetif().GetMac().SendFrameRequest(mSender));
     }
 
-    mBoundChild->GetMacAddress(mMacDest);
-
-    if (mSendMessage == NULL && mIdleMessageSent)
+    if (mParent->mOverflowMacSender.GetMeshSender() == this && !mParent->mOverflowMacSender.IsInUse())
     {
-        ExitNow(error = OT_ERROR_NOT_FOUND);
+        SuccessOrExit(error = mParent->GetNetif().GetMac().SendFrameRequest(mParent->mOverflowMacSender));
     }
-
-    SuccessOrExit(error = mParent->GetNetif().GetMac().SendFrameRequest(mSender));
 
 exit:
     return error;
