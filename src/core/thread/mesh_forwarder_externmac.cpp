@@ -1080,6 +1080,7 @@ otError MeshSender::SendFragment(Message &aMessage, Mac::Frame &aFrame, otDataRe
     if (!isDirectSender() && (mMessageNextOffset < aMessage.GetLength()))
     {
         // We have an indirect packet which requires more than a single 15.4 frame - attempt to use overflow
+        aDataReq.mTxOptions |= OT_MAC_TX_OPTION_NS_FPEND;
         VerifyOrExit(mParent->mOverflowMacSender.GetMeshSender() == NULL);
         mParent->mOverflowMacSender.SetMeshSender(this);
         otLogDebgMac(GetInstance(), "Claiming overflow %d for Sender %d", mParent, this);
