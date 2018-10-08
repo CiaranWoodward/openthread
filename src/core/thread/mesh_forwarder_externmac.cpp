@@ -82,8 +82,10 @@ MeshForwarder::MeshForwarder(Instance &aInstance)
     , mDiscoverTimer(aInstance, &MeshForwarder::HandleDiscoverTimer, this)
     , mReassemblyTimer(aInstance, &MeshForwarder::HandleReassemblyTimer, this)
     , mDirectSender()
-    , mOverflowMacSender(&MeshSender::DispatchFrameRequest, MeshSender::DispatchSentFrame, NULL)
-#if OPENTHREAD_CONFIG_INDIRECT_QUEUE_LENGTH == 0
+#if OPENTHREAD_CONFIG_EXTERNAL_MAC_FLOATING_SENDERS == 0
+    , mFloatingMacSenders(NULL)
+#endif
+#if OPENTHREAD_CONFIG_EXTERNAL_MAC_MAX_SEDS == 0
     , mMeshSenders(NULL)
 #endif
     , mScheduleTransmissionTask(aInstance, ScheduleTransmissionTask, this)
@@ -102,6 +104,11 @@ MeshForwarder::MeshForwarder(Instance &aInstance)
     for (int i = 0; i < kNumIndirectSenders; i++)
     {
         mMeshSenders[i].mParent = this;
+    }
+
+    for (int i = 0; i < kNumFloatingSenders; i++)
+    {
+        mFloatingMacSenders[i] = Mac::Sender(&MeshSender::DispatchFrameRequest, MeshSender::DispatchSentFrame, NULL);
     }
 
     mIpCounters.mTxSuccess = 0;
@@ -220,7 +227,8 @@ void MeshForwarder::ScheduleTransmissionTask(void)
 
 otError MeshSender::ScheduleIndirectTransmission()
 {
-    otError error = OT_ERROR_NONE;
+    otError      error = OT_ERROR_NONE;
+    Mac::Sender *macSender;
 
     VerifyOrExit(MeshForwarder::kNumIndirectSenders > 0, error = OT_ERROR_NOT_CAPABLE);
     VerifyOrExit(mBoundChild != NULL, error = OT_ERROR_NOT_FOUND);
@@ -251,9 +259,9 @@ otError MeshSender::ScheduleIndirectTransmission()
         SuccessOrExit(error = mParent->GetNetif().GetMac().SendFrameRequest(mSender));
     }
 
-    if (mParent->mOverflowMacSender.GetMeshSender() == this && !mParent->mOverflowMacSender.IsInUse())
+    while ((macSender = mParent->GetIdleFloatingSender(this)) != NULL)
     {
-        SuccessOrExit(error = mParent->GetNetif().GetMac().SendFrameRequest(mParent->mOverflowMacSender));
+        SuccessOrExit(error = mParent->GetNetif().GetMac().SendFrameRequest(*macSender));
     }
 
 exit:
@@ -1081,13 +1089,10 @@ otError MeshSender::SendFragment(Message &aMessage, Mac::Frame &aFrame, otDataRe
     {
         // We have an indirect packet which requires more than a single 15.4 frame - attempt to use overflow
         aDataReq.mTxOptions |= OT_MAC_TX_OPTION_NS_FPEND;
-        VerifyOrExit(mParent->mOverflowMacSender.GetMeshSender() == NULL);
-        mParent->mOverflowMacSender.SetMeshSender(this);
-        otLogDebgMac(GetInstance(), "Claiming overflow %d for Sender %d", mParent, this);
+        mParent->GetFreeFloatingSender(this);
     }
 
 exit:
-
     return error;
 }
 
@@ -1137,7 +1142,13 @@ otError MeshSender::SendEmptyFrame(bool aAckRequest, otDataRequest &aDataReq)
 
 void MeshSender::DispatchSentFrame(Mac::Sender &aSender, otError aError)
 {
-    aSender.GetMeshSender()->HandleSentFrame(aSender, aError);
+    MeshSender *meshSender = aSender.GetMeshSender();
+
+    VerifyOrExit(meshSender != NULL);
+    meshSender->HandleSentFrame(aSender, aError);
+
+exit:
+    return;
 }
 
 void MeshSender::HandleSentFrame(Mac::Sender &aSender, otError aError)
@@ -1235,8 +1246,7 @@ void MeshSender::HandleSentFrame(Mac::Sender &aSender, otError aError)
 
             childIndex = netif.GetMle().GetChildTable().GetChildIndex(*child);
 
-            if (mParent->mOverflowMacSender.GetMeshSender() == this)
-                mParent->mOverflowMacSender.SetMeshSender(NULL);
+            mParent->ReleaseFloatingSenders(this);
 
             if (mSendMessage->GetChildMask(childIndex))
             {
@@ -1716,6 +1726,62 @@ otError MeshForwarder::HandleDatagram(Message &               aMessage,
 void MeshForwarder::HandleDataPollTimeout(Mac::Receiver &aReceiver)
 {
     aReceiver.GetOwner<MeshForwarder>().GetDataPollManager().HandlePollTimeout();
+}
+
+Mac::Sender *MeshForwarder::GetFreeFloatingSender(MeshSender *aSender)
+{
+    Mac::Sender *sender = NULL;
+
+    for (int i = 0; i < kNumFloatingSenders; i++)
+    {
+        if (mFloatingMacSenders[i].IsInUse())
+            continue;
+        if (mFloatingMacSenders[i].GetMeshSender() != NULL)
+            continue;
+
+        otLogDebgMac(GetInstance, "Claiming floating sender %d for MeshSender %d", i, aSender);
+        sender = &mFloatingMacSenders[i];
+        sender->SetMeshSender(aSender);
+        break;
+    }
+
+    return sender;
+}
+
+Mac::Sender *MeshForwarder::GetIdleFloatingSender(MeshSender *aSender)
+{
+    Mac::Sender *sender = NULL;
+
+    for (int i = 0; i < kNumFloatingSenders; i++)
+    {
+        if (mFloatingMacSenders[i].IsInUse())
+            continue;
+        if (mFloatingMacSenders[i].GetMeshSender() != aSender)
+            continue;
+
+        sender = &mFloatingMacSenders[i];
+        break;
+    }
+
+    return sender;
+}
+
+void MeshForwarder::ReleaseFloatingSenders(MeshSender *aSender)
+{
+    for (int i = 0; i < kNumFloatingSenders; i++)
+    {
+        Mac::Sender &sender = mFloatingMacSenders[i];
+
+        if (sender.GetMeshSender() != aSender)
+            continue;
+
+        otLogDebgMac(GetInstance, "Releasing floating sender %d from MeshSender %d", i, aSender);
+
+        if (sender.IsInUse())
+            GetNetif().GetMac().PurgeFrameRequest(sender);
+
+        sender.SetMeshSender(NULL);
+    }
 }
 
 #if (OPENTHREAD_CONFIG_LOG_LEVEL >= OT_LOG_LEVEL_DEBG) && (OPENTHREAD_CONFIG_LOG_MAC == 1)

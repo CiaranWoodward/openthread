@@ -593,8 +593,24 @@ exit:
 
 otError Mac::PurgeFrameRequest(Sender &aSender)
 {
-    otError error = OT_ERROR_NONE;
-    Sender *sender;
+    otError  error = OT_ERROR_NONE;
+    Sender * sender;
+    Sender **sendQueue;
+
+    // First check sendQueue and just drop it if in there (sendFrameRequest not called)
+    sendQueue = &mSendHead;
+    while (*sendQueue != NULL)
+    {
+        sender = *sendQueue;
+        if (sender == &aSender)
+        {
+            (*sendQueue)        = sender->mNext;
+            sender->mMsduHandle = 0;
+            sender->mNext       = NULL;
+            ExitNow();
+        }
+        sendQueue = &(sender->mNext);
+    }
 
     VerifyOrExit(otPlatMcpsPurge(&GetInstance(), aSender.mMsduHandle) == OT_ERROR_NONE, error = OT_ERROR_ALREADY);
 
@@ -1107,7 +1123,7 @@ void Mac::BuildSecurityTable()
     uint8_t      numActiveDevices    = 0;
     uint8_t      nextHopForNeighbors = Mle::kInvalidRouterId;
     bool         isJoining           = false;
-    bool         isFFD               = !!(GetNetif().GetMle().GetDeviceMode() & Mle::ModeTlv::kModeFFD);
+    bool         isFFD               = (GetNetif().GetMle().GetDeviceMode() & Mle::ModeTlv::kModeFFD);
 
 #if OPENTHREAD_ENABLE_JOINER
     isJoining = (GetNetif().GetJoiner().GetState() != OT_JOINER_STATE_IDLE &&

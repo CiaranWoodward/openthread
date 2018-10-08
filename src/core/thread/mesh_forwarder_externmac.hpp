@@ -341,9 +341,9 @@ public:
 private:
     enum
     {
-        kStateUpdatePeriod = 1000, ///< State update period in milliseconds.
-        kNumIndirectSenders =
-            OPENTHREAD_CONFIG_INDIRECT_QUEUE_LENGTH, ///< Number of indirect 15.4 messages that can be concurrently sent
+        kStateUpdatePeriod  = 1000,                                            ///< State update period in milliseconds.
+        kNumIndirectSenders = OPENTHREAD_CONFIG_EXTERNAL_MAC_MAX_SEDS,         ///< Indirects reserved for single SEDs
+        kNumFloatingSenders = OPENTHREAD_CONFIG_EXTERNAL_MAC_FLOATING_SENDERS, ///< Shared senders
     };
 
     enum
@@ -431,6 +431,11 @@ private:
     void        ScheduleTransmissionTask(void);
     static void HandleDataPollTimeout(Mac::Receiver &aReceiver);
 
+    // Functions to claim/release Floating Mac Senders
+    Mac::Sender *GetFreeFloatingSender(MeshSender *aSender);  // Get and claim an unclaimed sender
+    Mac::Sender *GetIdleFloatingSender(MeshSender *aSender);  // Get sender claimed for aSender & idle
+    void         ReleaseFloatingSenders(MeshSender *aSender); // Release claim to all senders
+
     uint16_t GetNextFragTag(void);
 
 #if OPENTHREAD_FTD
@@ -455,12 +460,16 @@ private:
      * not null. After it is done using the overflow potential, it should set the pointer back to NULL. This is used to
      * control how much of the external MAC's resources each SED is permitted to consume.
      */
-
-#if OPENTHREAD_CONFIG_INDIRECT_QUEUE_LENGTH != 0
-    Mac::Sender mOverflowMacSender;
-    MeshSender  mMeshSenders[kNumIndirectSenders];
+#if OPENTHREAD_CONFIG_EXTERNAL_MAC_FLOATING_SENDERS != 0
+    Mac::Sender mFloatingMacSenders[kNumFloatingSenders];
 #else
-    MeshSender *mMeshSenders;
+    Mac::Sender *mFloatingMacSenders;
+#endif
+
+#if OPENTHREAD_CONFIG_EXTERNAL_MAC_MAX_SEDS != 0
+    MeshSender mMeshSenders[kNumIndirectSenders];
+#else
+    MeshSender * mMeshSenders;
 #endif
 
     MessageQueue mReassemblyList;

@@ -195,6 +195,20 @@ public:
     {
     }
 
+    /**
+     * This constructor creates an empty MAC sender client.
+     *
+     */
+    Sender()
+        : mMsduHandle(0)
+        , mMessageOffset(0)
+        , mFrameRequestHandler(NULL)
+        , mSentFrameHandler(NULL)
+        , mNext(NULL)
+        , mMeshSender(NULL)
+    {
+    }
+
     MeshSender *GetMeshSender(void) const { return mMeshSender; }
     void        SetMeshSender(MeshSender *aMeshSender) { mMeshSender = aMeshSender; }
     void        SetMessageEndOffset(uint16_t aMessageOffset) { mMessageOffset = aMessageOffset; }
