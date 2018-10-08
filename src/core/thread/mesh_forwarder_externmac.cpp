@@ -259,7 +259,8 @@ otError MeshSender::ScheduleIndirectTransmission()
         SuccessOrExit(error = mParent->GetNetif().GetMac().SendFrameRequest(mSender));
     }
 
-    while ((macSender = mParent->GetIdleFloatingSender(this)) != NULL)
+    VerifyOrExit(mSendMessage != NULL);
+    while ((macSender = mParent->GetIdleFloatingSender(this)) != NULL && mMessageNextOffset < mSendMessage->GetLength())
     {
         SuccessOrExit(error = mParent->GetNetif().GetMac().SendFrameRequest(*macSender));
     }
@@ -697,6 +698,7 @@ otError MeshSender::HandleFrameRequest(Mac::Sender &aSender, Mac::Frame &aFrame,
         }
     }
 
+    VerifyOrExit(mMessageNextOffset < mSendMessage->GetLength(), error = OT_ERROR_ALREADY);
     mSendMessage->SetOffset(mMessageNextOffset);
     if (child != NULL && !child->IsRxOnWhenIdle())
     {

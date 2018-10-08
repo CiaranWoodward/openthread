@@ -1304,6 +1304,10 @@ exit:
             sender->mNext = mSendingHead;
             mSendingHead  = sender;
         }
+        else
+        {
+            sender->mMsduHandle = 0;
+        }
     }
 
     return;
