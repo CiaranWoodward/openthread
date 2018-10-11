@@ -1361,7 +1361,8 @@ void MeshForwarder::HandleDiscoverTimer(void)
         }
     } while ((mScanChannels & 1) == 0);
 
-    (mDirectSender.mSendMessage)->SetDirectTransmission();
+    mDirectSender.mSendMessage->SetDirectTransmission();
+    mDirectSender.mMessageNextOffset = 0;
 
 exit:
     mScheduleTransmissionTask.Post();
