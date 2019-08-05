@@ -760,6 +760,10 @@ otError MeshForwarder::SendPoll()
             error = OT_ERROR_INVALID_STATE;
         }
     }
+    else if (error == OT_ERROR_NONE)
+    {
+        parent->ResetLinkFailures();
+    }
 
 exit:
     return error;
