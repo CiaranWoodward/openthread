@@ -532,7 +532,7 @@ otError Mac::PurgeFrameRequest(Sender &aSender)
     sender->HandleSentFrame(OT_ERROR_ABORT);
 
 exit:
-    otLogInfoMac("Purged frame from MAC (Error %x)", error);
+    otLogDebgMac("Purged frame from MAC (Error %x)", error);
     return error;
 }
 
